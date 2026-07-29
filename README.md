@@ -7,7 +7,7 @@ The official **Model Context Protocol (MCP)** server for CapMonster Cloud.
 
 This server allows you to seamlessly integrate the fastest AI-powered CAPTCHA solving infrastructure into any MCP-compatible AI Assistant (like **Claude Desktop**, **Cursor IDE**, or your custom **AI Agents**). Equip your LLM with the ability to bypass web protections during autonomous web scraping and research.
 
-**[👉 Get your Free API Key and Start Bypassing CAPTCHAs](https://capmonster.cloud/Dashboard/Registration?utm_source=github&utm_medium=referral&utm_campaign=mcp_repo_readme)**
+**[👉 Get your Free API Key and Start Bypassing CAPTCHAs](https://dash.capmonster.cloud/Account/SignUp?utm_source=github&utm_medium=referral&utm_campaign=mcp_repo_readme)**
 
 ---
 
