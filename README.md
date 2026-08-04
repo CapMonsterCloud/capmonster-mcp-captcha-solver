@@ -16,7 +16,7 @@ This server allows you to seamlessly integrate the fastest AI-powered CAPTCHA so
 Your AI Agent will be able to automatically bypass:
 - **reCAPTCHA** (v2, v2 Enterprise, v3, v3 Enterprise)
 - **Cloudflare Turnstile** (Token, Managed Challenge)
-- **hCaptcha** & **FunCaptcha**
+- **FunCaptcha**
 - **GeeTest** (V3 and V4)
 - **Enterprise Anti-Bot Systems:** DataDome, Imperva, Binance, Prosopo, etc.
 - **Image-to-Text & Complex Image Tasks**
