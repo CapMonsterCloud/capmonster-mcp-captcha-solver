@@ -1,0 +1,48 @@
+{
+  "name": "captcha-mcp-test",
+  "version": "0.1.1",
+  "description": "MCP server for solving captchas via CapMonster Cloud (test publish)",
+  "type": "module",
+  "main": "dist/server.js",
+  "bin": {
+    "captcha-mcp-test": "dist/server.js"
+  },
+  "files": [
+    "dist/",
+    "!dist/__tests__/",
+    "README.md",
+    "package.json"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pavelgrinkevich/captcha-mcp-test.git",
+    "directory": "ts"
+  },
+  "homepage": "https://github.com/pavelgrinkevich/captcha-mcp-test#readme",
+  "bugs": {
+    "url": "https://github.com/pavelgrinkevich/captcha-mcp-test/issues"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.3",
+    "@types/node": "^22.0.0",
+    "tsx": "^4.22.3",
+    "typescript": "^5.7.0"
+  },
+  "scripts": {
+    "build": "tsc && node -e \"try{require('fs').chmodSync('dist/server.js',0o755)}catch(e){}\"",
+    "dev": "tsx src/server.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome lint src",
+    "lint:fix": "biome lint --write src",
+    "test": "npm run build && node --test dist/**/*.test.js",
+    "prepublishOnly": "npm run build"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "capmonster": {
+      "command": "uvx",
+      "args": ["captcha-mcp-test"],
+      "env": {
+        "CM_API_KEY": "YOUR_API_KEY"
+      }
+    },
+    "patchright": {
+      "command": "npx",
+      "args": ["-y", "mcp-patchright-mainworld"]
+    }
+  }
+}
