@@ -1,10 +1,10 @@
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
 
 [project]
 name = "captcha-mcp-test"
-version = "0.1.1"
+dynamic = ["version"]
 description = "MCP server for solving captchas via CapMonster Cloud (test publish)"
 readme = "README.md"
 license = "MIT"
@@ -26,6 +26,9 @@ dev = [
 
 [project.scripts]
 captcha-mcp-test = "capmonster_mcp.server:main"
+
+[tool.hatch.version]
+source = "vcs"
 
 [tool.hatch.build.targets.wheel]
 packages = ["capmonster_mcp"]
