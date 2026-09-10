@@ -38,7 +38,7 @@ To add CapMonster CAPTCHA solving capabilities to Claude Desktop, add the follow
       "command": "npx",
       "args": [
         "-y",
-        "capmonster-mcp-captcha-solver"
+        "capmonster-mcp"
       ],
       "env": {
         "CAPMONSTER_API_KEY": "your_api_key_here"

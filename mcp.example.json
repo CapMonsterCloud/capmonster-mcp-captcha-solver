@@ -2,14 +2,14 @@
   "mcpServers": {
     "capmonster": {
       "command": "uvx",
-      "args": ["--index-url", "https://test.pypi.org/simple/", "--extra-index-url", "https://pypi.org/simple/", "captcha-mcp-test"],
+      "args": ["capmonster-mcp"],
       "env": {
         "CM_API_KEY": "YOUR_API_KEY"
       }
     },
     "patchright": {
       "command": "npx",
-      "args": ["-y", "capmonster-mcp-patchright"]
+      "args": ["-y", "mcp-patchright-mainworld"]
     }
   }
 }

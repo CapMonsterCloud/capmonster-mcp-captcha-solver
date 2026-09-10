@@ -1,5 +1,5 @@
 ---
-name: captcha-mcp-test
+name: capmonster-mcp
 description: How to analyze a captcha-protected page and solve it using the capmonster MCP server (create_task, get_task_result, get_supported_tasks, get_task_parameters, get_docs, get_actual_user_agent, get_balance) as the solve brain, driven by a patchright MCP server (a stealth Playwright browser kept alive across tool calls) that does all page work — navigation, interaction, reading the live DOM/network, and injecting the solution back into the page — and how to turn a solve into a standalone script. Use whenever the user gives a URL with a captcha, asks "what captcha is this / solve this captcha", or wants a reusable script that solves a captcha via CapMonster.
 ---
 

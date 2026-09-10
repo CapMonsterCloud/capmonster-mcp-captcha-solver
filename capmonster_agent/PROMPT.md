@@ -3,8 +3,8 @@ I want to detect and solve a captcha using CapMonster Cloud. Set yourself up:
 1. MCP SERVERS — if you support MCP servers, add BOTH of these to your config:
 
    a) capmonster — the solve brain (CapMonster Cloud). Runs the published
-      `captcha-mcp-test` PyPI package (no cloning needed):
-      { "command": "uvx", "args": ["captcha-mcp-test"], "env": { "CM_API_KEY": "..." } }
+      `capmonster-mcp` PyPI package (no cloning needed):
+      { "command": "uvx", "args": ["capmonster-mcp"], "env": { "CM_API_KEY": "..." } }
       It exposes: get_supported_tasks, get_task_parameters, get_docs,
       create_task, get_task_result, get_task_result_wait, get_actual_user_agent,
       get_balance.
@@ -13,7 +13,7 @@ I want to detect and solve a captcha using CapMonster Cloud. Set yourself up:
 
    b) patchright — a stealth Playwright browser kept alive across tool calls,
       that does all the page work: navigation, interaction, reading the live
-      DOM/network, and injecting the solution (captcha-mcp-test has no browser of its
+      DOM/network, and injecting the solution (capmonster-mcp has no browser of its
       own). Also accepts a proxy (including authenticated user:pass proxies) via
       its `browser_start(proxy={server, username, password})` tool call — no
       config edit or restart needed. Runs the published `mcp-patchright-mainworld`
