@@ -9,7 +9,7 @@
     },
     "patchright": {
       "command": "npx",
-      "args": ["-y", "mcp-patchright-mainworld"]
+      "args": ["-y", "capmonster-mcp-patchright"]
     }
   }
 }
