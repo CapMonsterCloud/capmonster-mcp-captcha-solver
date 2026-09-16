@@ -16,12 +16,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/pavelgrinkevich/captcha-mcp-test.git",
+    "url": "git+https://github.com/CapMonsterCloud/capmonster-mcp-captcha-solver.git",
     "directory": "ts"
   },
-  "homepage": "https://github.com/pavelgrinkevich/captcha-mcp-test#readme",
+  "homepage": "https://github.com/CapMonsterCloud/capmonster-mcp-captcha-solver#readme",
   "bugs": {
-    "url": "https://github.com/pavelgrinkevich/captcha-mcp-test/issues"
+    "url": "https://github.com/CapMonsterCloud/capmonster-mcp-captcha-solver/issues"
   },
   "engines": {
     "node": ">=18"

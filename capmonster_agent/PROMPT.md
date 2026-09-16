@@ -29,7 +29,7 @@ I want to detect and solve a captcha using CapMonster Cloud. Set yourself up:
    analyzing and solving captchas with the two servers together, whether or not
    your environment has a first-class "skill" feature. It is a strict, ordered
    procedure — follow the numbered steps in order:
-   https://raw.githubusercontent.com/pavelgrinkevich/captcha-mcp-test/main/capmonster_agent/SKILL.md
+   https://raw.githubusercontent.com/CapMonsterCloud/capmonster-mcp-captcha-solver/main/capmonster_agent/SKILL.md
 
 3. DOCS — the capmonster MCP's `get_docs(url)` tool fetches any CapMonster doc
    page (docs.capmonster.cloud / api.capmonster.cloud only). Start from the
