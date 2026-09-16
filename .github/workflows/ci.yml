@@ -41,7 +41,7 @@ jobs:
         working-directory: ts
         run: npm test
 
-  publish-test:
+  build:
     needs: test
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
@@ -83,13 +83,6 @@ jobs:
           name: python-dist
           path: dist/
 
-      - name: Publish Python package to TestPyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          repository-url: https://test.pypi.org/legacy/
-          user: __token__
-          password: ${{ secrets.TEST_PYPI_API_TOKEN }}
-
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
@@ -115,23 +108,24 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   verify:
-    needs: publish-test
+    needs: build
     runs-on: ubuntu-latest
     steps:
+      - name: Download Python package artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: python-dist
+          path: dist/
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      - name: Wait for TestPyPI to index the release
-        run: sleep 30
-
-      - name: Install from TestPyPI and check version
+      - name: Install from local wheel and check version
         run: |
-          version="${{ needs.publish-test.outputs.version }}"
-          pip install --index-url https://test.pypi.org/simple/ \
-            --extra-index-url https://pypi.org/simple/ \
-            "capmonster-mcp==$version"
+          version="${{ needs.build.outputs.version }}"
+          pip install dist/*.whl
           python -c "
           import capmonster_mcp
           assert capmonster_mcp.__version__ == '$version', capmonster_mcp.__version__
@@ -145,7 +139,7 @@ jobs:
 
       - name: Install from npm rc tag and check version
         run: |
-          version="${{ needs.publish-test.outputs.version }}"
+          version="${{ needs.build.outputs.version }}"
           mkdir verify-npm && cd verify-npm
           npm init -y >/dev/null
           npm install "capmonster-mcp@rc"
@@ -157,7 +151,7 @@ jobs:
           echo "OK: $installed"
 
   publish-prod:
-    needs: [publish-test, verify]
+    needs: [build, verify]
     runs-on: ubuntu-latest
     steps:
       - name: Download Python package artifact
@@ -179,6 +173,6 @@ jobs:
           registry-url: https://registry.npmjs.org
 
       - name: Promote npm rc tag to latest
-        run: npm dist-tag add "capmonster-mcp@${{ needs.publish-test.outputs.version }}" latest
+        run: npm dist-tag add "capmonster-mcp@${{ needs.build.outputs.version }}" latest
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
