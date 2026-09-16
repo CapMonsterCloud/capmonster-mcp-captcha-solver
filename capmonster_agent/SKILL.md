@@ -18,7 +18,7 @@ and what must be true before you move on.
   and polls the solve task. Tools: `get_supported_tasks`, `get_task_parameters`,
   `get_docs`, `create_task`, `get_task_result`, `get_task_result_wait`,
   `get_actual_user_agent`, `get_balance`.
-- **`patchright` MCP** (`mcp__patchright__*`, the `mcp-patchright-mainworld` npm package) — the
+- **`patchright` MCP** (`mcp__patchright__*`, the `capmonster-mcp-patchright` npm package) — the
   **eyes and hands**: a live, stateful, stealth browser (a hardened Playwright fork
   that defeats most automation detection), headed by default, that keeps one browser
   context alive across tool calls. Everything that touches the page goes through it:

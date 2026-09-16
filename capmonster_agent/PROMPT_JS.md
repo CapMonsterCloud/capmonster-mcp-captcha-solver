@@ -16,9 +16,9 @@ I want to detect and solve a captcha using CapMonster Cloud. Set yourself up:
       DOM/network, and injecting the solution (capmonster-mcp has no browser of its
       own). Also accepts a proxy (including authenticated user:pass proxies) via
       its `browser_start(proxy={server, username, password})` tool call — no
-      config edit or restart needed. Runs the published `mcp-patchright-mainworld`
+      config edit or restart needed. Runs the published `capmonster-mcp-patchright`
       npm package via npx (needs Node.js 18+):
-      { "command": "npx", "args": ["-y", "mcp-patchright-mainworld"] }
+      { "command": "npx", "args": ["-y", "capmonster-mcp-patchright"] }
       (auto-starts a session on first browser_navigate; call browser_start
       explicitly only to set non-default options like proxy/userAgent/locale.
       browser_evaluate / browser_run_code_unsafe run in an isolated stealth world
