@@ -1,11 +1,11 @@
 {
-  "name": "captcha-mcp-test",
+  "name": "capmonster-mcp",
   "version": "0.1.1",
-  "description": "MCP server for solving captchas via CapMonster Cloud (test publish)",
+  "description": "MCP server for solving captchas via CapMonster Cloud",
   "type": "module",
   "main": "dist/server.js",
   "bin": {
-    "captcha-mcp-test": "dist/server.js"
+    "capmonster-mcp": "dist/server.js"
   },
   "files": [
     "dist/",

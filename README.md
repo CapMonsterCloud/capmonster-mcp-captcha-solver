@@ -3,9 +3,16 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![MCP Protocol](https://img.shields.io/badge/MCP-Supported-blue.svg)](https://modelcontextprotocol.io/)
 
-The official **Model Context Protocol (MCP)** server for CapMonster Cloud. 
+An **Model Context Protocol (MCP)** server for CapMonster Cloud, available as a Python package
+and as a TypeScript port ([`ts/`](ts)).
 
-This server allows you to seamlessly integrate the fastest AI-powered CAPTCHA solving infrastructure into any MCP-compatible AI Assistant (like **Claude Desktop**, **Cursor IDE**, or your custom **AI Agents**). Equip your LLM with the ability to bypass web protections during autonomous web scraping and research.
+This server is the **solve brain**: it lists supported captcha types, serves CapMonster's live
+docs, and creates/polls solve tasks against the CapMonster Cloud REST API. It has **no browser of
+its own** — pair it with a browser-driving MCP (e.g.
+[`mcp-patchright-mainworld`](https://www.npmjs.com/package/mcp-patchright-mainworld)) that does
+the page work (navigation, interaction, reading the live DOM/network, and injecting the solved
+token back into the page). See [`capmonster_agent/SKILL.md`](capmonster_agent/SKILL.md) for the
+full step-by-step procedure for analyzing a captcha-protected page and solving it this way.
 
 **[👉 Get your Free API Key and Start Bypassing CAPTCHAs](https://dash.capmonster.cloud/Account/SignUp?utm_source=github&utm_medium=referral&utm_campaign=mcp_repo_readme)**
 
@@ -13,51 +20,72 @@ This server allows you to seamlessly integrate the fastest AI-powered CAPTCHA so
 
 ## ⚡ Supported CAPTCHAs
 
-Your AI Agent will be able to automatically bypass:
-- **reCAPTCHA** (v2, v2 Enterprise, v3, v3 Enterprise)
-- **Cloudflare Turnstile** (Token, Managed Challenge)
-- **FunCaptcha**
-- **GeeTest** (V3 and V4)
-- **Enterprise Anti-Bot Systems:** DataDome, Imperva, Binance, Prosopo, etc.
+Your AI Agent will be able to automatically bypass, among others:
+- **reCAPTCHA** (v2, v2 Enterprise, v3)
+- **Cloudflare Turnstile** and Cloudflare Challenge (managed challenge / `cf_clearance`)
+- **FunCaptcha** (Arkose)
+- **GeeTest** (v3 and v4)
+- **Enterprise Anti-Bot Systems:** AWS WAF, DataDome, Imperva, TSPD, Binance, Prosopo, Yidun,
+  TenDI, Hunt, Altcha, Basilisk, and more
 - **Image-to-Text & Complex Image Tasks**
+
+The authoritative, current list is served live from CapMonster's OpenAPI spec via the
+`get_supported_tasks` tool — **hCaptcha is not currently supported**, despite appearing in some
+of CapMonster's own marketing copy.
 
 ## 📦 Installation
 
-To use this MCP server, you need Node.js/Python (depending on your build) and a valid CapMonster API Key.
+Requires Python 3.11+ and a valid CapMonster API Key. Run it with `uvx` (no local clone needed):
 
-*Note: Installation instructions will be detailed here shortly upon the official release of the package.*
+```
+uvx capmonster-mcp
+```
 
-## 🔌 Using with Claude Desktop
+Prefer TypeScript/Node? See [`ts/README.md`](ts/README.md) for the npm-published port — same
+tools, same behavior.
 
-To add CapMonster CAPTCHA solving capabilities to Claude Desktop, add the following to your `claude_desktop_config.json`:
+## 🔌 Using with an MCP client (e.g. Claude Desktop)
+
+Add the following to your MCP client's config (e.g. `claude_desktop_config.json`):
 
 ```json
 {
   "mcpServers": {
     "capmonster": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "capmonster-mcp"
-      ],
+      "command": "uvx",
+      "args": ["capmonster-mcp"],
       "env": {
-        "CAPMONSTER_API_KEY": "your_api_key_here"
+        "CM_API_KEY": "your_api_key_here"
       }
     }
   }
 }
 ```
 
+The server only runs over stdio, so there are no HTTP headers to carry a per-request key —
+`CM_API_KEY` is read once from the environment and shared by every tool call in the session.
+
+Pair it with a browser-automation MCP server (e.g.
+[`mcp-patchright-mainworld`](https://www.npmjs.com/package/mcp-patchright-mainworld)) so your
+agent can both see the page and solve what's on it — see [`mcp.example.json`](mcp.example.json)
+for a config with both servers wired up together.
+
 ## 🛠 Available MCP Tools
 
 Once connected, your LLM will have access to the following tools:
 
-- `solve_recaptcha`: Submits a target URL and sitekey to obtain a reCAPTCHA bypass token.
-- `solve_turnstile`: Solves Cloudflare Turnstile challenges.
-- `solve_image_captcha`: Sends a base64 encoded image to get the recognized text.
-- `get_balance`: Checks your current CapMonster Cloud API balance.
-
-*Example prompt for Claude: "Can you scrape this page? If you hit a Cloudflare Turnstile challenge, use the CapMonster tool to solve it, then proceed with extracting the data."*
+- `get_supported_tasks`: Lists captcha task types CapMonster supports, from the live OpenAPI spec.
+- `get_task_parameters(task_type)`: Required/optional fields, variant notes, and the solution
+  schema for a task type.
+- `get_docs(url, offset, limit, section)`: Fetches a CapMonster documentation page
+  (`docs.capmonster.cloud` / `api.capmonster.cloud` only), with section-jump and pagination.
+- `create_task(task)`: Submits a captcha task and returns a `taskId`.
+- `get_task_result(task_id)`: Polls a task once.
+- `get_task_result_wait(task_id, timeout_seconds, poll_interval_seconds)`: Polls a task to
+  completion (preferred over driving the poll loop yourself).
+- `get_actual_user_agent()`: Fetches a current Windows User-Agent to use as one consistent
+  fingerprint across the browser and the solve task.
+- `get_balance()`: Checks your current CapMonster Cloud API balance.
 
 ## 📚 Official Documentation
 

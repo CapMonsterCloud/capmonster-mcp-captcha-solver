@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { readFile } from "node:fs/promises";
+import { createRequire } from "node:module";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
@@ -7,6 +8,9 @@ import { apiPost, pollTaskResult, pollTaskResultWait, USER_AGENT_URL } from "./c
 import { loadSettings } from "./config.js";
 import { DOCS_ALLOWED_HOSTS, DOCS_CHUNK_SIZE, getDocs, ToolError } from "./docs.js";
 import { getSupportedTasks, getTaskParameters } from "./tasks.js";
+
+const require = createRequire(import.meta.url);
+const packageVersion: string = require("../package.json").version;
 
 const settings = loadSettings();
 
@@ -33,7 +37,7 @@ function requireApiKey(): string {
 export function createServer(): McpServer {
   const server = new McpServer({
     name: settings.mcpServerName,
-    version: "0.1.0",
+    version: packageVersion,
   });
 
   server.registerPrompt(

@@ -1,4 +1,4 @@
-# captcha-mcp-test (TypeScript)
+# capmonster-mcp (TypeScript)
 
 MCP server for solving captchas via [CapMonster Cloud](https://capmonster.cloud), published to
 npm. This is a TypeScript port of the Python implementation in the repo root — same tools, same
@@ -16,7 +16,7 @@ token back into the page).
   "mcpServers": {
     "capmonster": {
       "command": "npx",
-      "args": ["-y", "captcha-mcp-test"],
+      "args": ["-y", "capmonster-mcp"],
       "env": { "CM_API_KEY": "YOUR_API_KEY" }
     }
   }
