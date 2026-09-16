@@ -5,7 +5,7 @@ npm. This is a TypeScript port of the Python implementation in the repo root —
 behavior. It is the **solve brain**: it lists supported captcha types, serves CapMonster's docs,
 and creates/polls solve tasks against the CapMonster Cloud REST API. It has **no browser of its
 own** — pair it with a browser-driving MCP (e.g.
-[`mcp-patchright-mainworld`](https://www.npmjs.com/package/mcp-patchright-mainworld)) that does
+[`capmonster-mcp-patchright`](https://www.npmjs.com/package/capmonster-mcp-patchright)) that does
 the page work (navigation, interaction, reading the live DOM/network, and injecting the solved
 token back into the page).
 

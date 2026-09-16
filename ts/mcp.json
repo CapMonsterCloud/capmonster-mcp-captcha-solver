@@ -2,7 +2,7 @@
   "mcpServers": {
     "capmonster": {
       "command": "npx",
-      "args": ["-y", "captcha-mcp-test"],
+      "args": ["-y", "capmonster-mcp"],
       "env": {
         "CM_API_KEY": "YOUR_API_KEY"
       }

@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "capmonster-mcp"
 dynamic = ["version"]
-description = "MCP server for solving captchas via CapMonster Cloud (test publish)"
+description = "MCP server for solving captchas via CapMonster Cloud"
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.11"

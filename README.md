@@ -9,7 +9,7 @@ and as a TypeScript port ([`ts/`](ts)).
 This server is the **solve brain**: it lists supported captcha types, serves CapMonster's live
 docs, and creates/polls solve tasks against the CapMonster Cloud REST API. It has **no browser of
 its own** — pair it with a browser-driving MCP (e.g.
-[`mcp-patchright-mainworld`](https://www.npmjs.com/package/mcp-patchright-mainworld)) that does
+[`capmonster-mcp-patchright`](https://www.npmjs.com/package/capmonster-mcp-patchright)) that does
 the page work (navigation, interaction, reading the live DOM/network, and injecting the solved
 token back into the page). See [`capmonster_agent/SKILL.md`](capmonster_agent/SKILL.md) for the
 full step-by-step procedure for analyzing a captcha-protected page and solving it this way.
@@ -66,7 +66,7 @@ The server only runs over stdio, so there are no HTTP headers to carry a per-req
 `CM_API_KEY` is read once from the environment and shared by every tool call in the session.
 
 Pair it with a browser-automation MCP server (e.g.
-[`mcp-patchright-mainworld`](https://www.npmjs.com/package/mcp-patchright-mainworld)) so your
+[`capmonster-mcp-patchright`](https://www.npmjs.com/package/capmonster-mcp-patchright)) so your
 agent can both see the page and solve what's on it — see [`mcp.example.json`](mcp.example.json)
 for a config with both servers wired up together.
 
