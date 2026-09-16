@@ -1,0 +1,184 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+    tags: ["v*"]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -e ".[dev]"
+
+      - name: Run tests
+        run: pytest tests/
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: ts/package-lock.json
+
+      - name: Install ts dependencies
+        working-directory: ts
+        run: npm ci
+
+      - name: Run ts tests
+        working-directory: ts
+        run: npm test
+
+  publish-test:
+    needs: test
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Require tag on main
+        run: |
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "::error::Tag ${GITHUB_REF_NAME} is not on main. Tags must be created on main."
+            exit 1
+          fi
+
+      - name: Derive version from tag
+        id: version
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install build tools
+        run: pip install build
+
+      - name: Build Python package
+        run: python -m build
+
+      - name: Upload Python package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-dist
+          path: dist/
+
+      - name: Publish Python package to TestPyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
+          user: __token__
+          password: ${{ secrets.TEST_PYPI_API_TOKEN }}
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          registry-url: https://registry.npmjs.org
+
+      - name: Set npm package version from tag
+        working-directory: ts
+        run: npm version "${{ steps.version.outputs.version }}" --no-git-tag-version --allow-same-version
+
+      - name: Install ts dependencies
+        working-directory: ts
+        run: npm ci
+
+      - name: Build ts package
+        working-directory: ts
+        run: npm run build
+
+      - name: Publish npm package under rc tag
+        working-directory: ts
+        run: npm publish --tag rc
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  verify:
+    needs: publish-test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Wait for TestPyPI to index the release
+        run: sleep 30
+
+      - name: Install from TestPyPI and check version
+        run: |
+          version="${{ needs.publish-test.outputs.version }}"
+          pip install --index-url https://test.pypi.org/simple/ \
+            --extra-index-url https://pypi.org/simple/ \
+            "capmonster-mcp==$version"
+          python -c "
+          import capmonster_mcp
+          assert capmonster_mcp.__version__ == '$version', capmonster_mcp.__version__
+          print('OK:', capmonster_mcp.__version__)
+          "
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install from npm rc tag and check version
+        run: |
+          version="${{ needs.publish-test.outputs.version }}"
+          mkdir verify-npm && cd verify-npm
+          npm init -y >/dev/null
+          npm install "capmonster-mcp@rc"
+          installed=$(node -p "require('capmonster-mcp/package.json').version")
+          if [ "$installed" != "$version" ]; then
+            echo "::error::expected $version, got $installed"
+            exit 1
+          fi
+          echo "OK: $installed"
+
+  publish-prod:
+    needs: [publish-test, verify]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Python package artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: python-dist
+          path: dist/
+
+      - name: Publish Python package to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI_API_TOKEN }}
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          registry-url: https://registry.npmjs.org
+
+      - name: Promote npm rc tag to latest
+        run: npm dist-tag add "capmonster-mcp@${{ needs.publish-test.outputs.version }}" latest
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
