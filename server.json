@@ -1,0 +1,9 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.capmonstercloud/capmonster-mcp-captcha-solver",
+  "description": "Official CapMonster Cloud MCP server — AI captcha solver for reCAPTCHA v2/v3, Cloudflare Turnstile and DataDome, for Claude, Cursor and other AI agents.",
+  "websiteUrl": "https://capmonster.cloud/en/",
+  "repository": { "url": "https://github.com/CapMonsterCloud/capmonster-mcp-captcha-solver", "source": "github" },
+  "version": "1.0.0",
+  "packages": [ { "registryType": "npm", "identifier": "your-npm-package-name", "version": "1.0.0" } ]
+}
