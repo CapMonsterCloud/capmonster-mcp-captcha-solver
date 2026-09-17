@@ -143,12 +143,12 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Install from npm rc tag and check version
+      - name: Install published npm version and check version
         run: |
           version="${{ needs.publish-test.outputs.version }}"
           mkdir verify-npm && cd verify-npm
           npm init -y >/dev/null
-          npm install "capmonster-mcp@rc"
+          npm install "capmonster-mcp@$version"
           installed=$(node -p "require('capmonster-mcp/package.json').version")
           if [ "$installed" != "$version" ]; then
             echo "::error::expected $version, got $installed"
