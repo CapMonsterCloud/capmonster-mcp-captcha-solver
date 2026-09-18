@@ -1,6 +1,7 @@
 {
   "name": "capmonster-mcp",
   "version": "0.1.1",
+  "mcpName": "io.github.CapMonsterCloud/capmonster-mcp-captcha-solver",
   "description": "MCP server for solving captchas via CapMonster Cloud",
   "type": "module",
   "main": "dist/server.js",
