@@ -11,7 +11,7 @@
     "captcha-solver",
     "recaptcha",
     "cloudflare-turnstile",
-    "hcaptcha",
+    "datadome",
     "capmonster",
     "ai-agent-tools"
   ],
