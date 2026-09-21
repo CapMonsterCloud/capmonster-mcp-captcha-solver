@@ -1,8 +1,20 @@
 {
   "name": "capmonster-mcp",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "mcpName": "io.github.CapMonsterCloud/capmonster-mcp-captcha-solver",
   "description": "MCP server for solving captchas via CapMonster Cloud",
+  "keywords": [
+    "mcp",
+    "mcp-server",
+    "model-context-protocol",
+    "captcha",
+    "captcha-solver",
+    "recaptcha",
+    "cloudflare-turnstile",
+    "hcaptcha",
+    "capmonster",
+    "ai-agent-tools"
+  ],
   "type": "module",
   "main": "dist/server.js",
   "bin": {
