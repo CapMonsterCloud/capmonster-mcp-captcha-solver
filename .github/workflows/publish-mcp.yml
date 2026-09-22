@@ -10,6 +10,14 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v5
+      - name: Set server.json version from tag
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          jq --arg v "$version" '
+            .version = $v
+            | .packages = [.packages[] | .version = $v]
+          ' server.json > server.json.tmp
+          mv server.json.tmp server.json
       - name: Install mcp-publisher
         run: |
           curl -L "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
