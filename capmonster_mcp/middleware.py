@@ -11,9 +11,14 @@ class ApiKeyMiddleware(Middleware):
     stdio is the only transport this server runs, so there are no HTTP
     headers to read a per-request key from — every client shares the one key
     set in its process environment (e.g. via the mcp.json `env` block).
+
+    Only enforced on tool calls (on_call_tool), not on every request: clients
+    like Glama's Inspector connect and call tools/list to score the server
+    before any CM_API_KEY is configured, and requiring the key that early
+    made the server fail initialize/list — before it ever reached a tool.
     """
 
-    async def on_request(self, context: MiddlewareContext, call_next):
+    async def on_call_tool(self, context: MiddlewareContext, call_next):
         key = AppSettings().cm_api_key
 
         if not key:
