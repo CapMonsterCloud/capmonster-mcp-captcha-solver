@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "capmonster-mcp": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "capmonster-mcp"
+      ],
+      "env": {
+        "CM_API_KEY": "${env:CM_API_KEY}"
+      }
+    }
+  }
+}
