@@ -158,7 +158,7 @@ though the array had 9 entries when written). Provide exactly one of
           }
         }
         const key = requireApiKey();
-        const data = await apiPost("/createTask", { clientKey: key, task });
+        const data = await apiPost("/createTask", { clientKey: key, task, softId: 151 });
         const taskId = data.taskId;
         if (!taskId) {
           throw new ToolError("No taskId returned from createTask.");
