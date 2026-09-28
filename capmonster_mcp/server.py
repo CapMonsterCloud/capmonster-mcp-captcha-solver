@@ -204,7 +204,7 @@ async def create_task(ctx: Context, task: dict | None = None, task_file: str | N
     key = await ctx.get_state("cm_api_key")
     data = await _api_post(
         "/createTask",
-        {"clientKey": key, "task": task},
+        {"clientKey": key, "task": task, "softId": 151},
     )
     task_id = data.get("taskId")
     if not task_id:
