@@ -7,6 +7,8 @@
 <p>
   <a href="[https://opensource.org/licenses/MIT](https://opensource.org/licenses/MIT)"><img src="https&#58;//img&#46;shields&#46;io/badge/License-MIT-yellow.svg" alt="License: MIT"></a>
   <a href="[https://modelcontextprotocol.io/](https://modelcontextprotocol.io/)"><img src="https&#58;//img&#46;shields&#46;io/badge/MCP-Supported-blue.svg" alt="MCP Protocol"></a>
+  <a href="[https://pypi.org/project/capmonster-mcp/](https://pypi.org/project/capmonster-mcp/)"><img src="https&#58;//img&#46;shields&#46;io/pypi/v/capmonster-mcp" alt="PyPI"></a>
+  <a href="[https://www.npmjs.com/package/capmonster-mcp](https://www.npmjs.com/package/capmonster-mcp)"><img src="https&#58;//img&#46;shields&#46;io/npm/v/capmonster-mcp" alt="npm"></a>
 </p>
 
 **Let your AI agent solve CAPTCHAs on its own.** A Model Context Protocol (MCP) server for
