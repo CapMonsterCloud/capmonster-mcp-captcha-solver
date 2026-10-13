@@ -18,6 +18,19 @@ jobs:
             | .packages = [.packages[] | .version = $v]
           ' server.json > server.json.tmp
           mv server.json.tmp server.json
+      - name: Wait for npm package version
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          for i in $(seq 1 60); do
+            if npm view "capmonster-mcp@${version}" version 2>/dev/null | grep -qx "${version}"; then
+              echo "Found capmonster-mcp@${version} on npm"
+              exit 0
+            fi
+            echo "Attempt ${i}: version not on npm yet, waiting 30s"
+            sleep 30
+          done
+          echo "::error::capmonster-mcp@${version} did not appear on npm in 30 minutes"
+          exit 1
       - name: Install mcp-publisher
         run: |
           curl -L "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
