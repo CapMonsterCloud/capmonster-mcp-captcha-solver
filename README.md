@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/logo.png" alt="CapMonster Cloud" width="200">
+  <img src="assets/logo.svg" alt="CapMonster Cloud" width="200">
 </p>
 
 # CapMonster Cloud MCP Server (Model Context Protocol)
