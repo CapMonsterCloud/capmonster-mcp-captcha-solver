@@ -4,8 +4,10 @@
 
 # CapMonster Cloud MCP Server (Model Context Protocol)
 
-[
-[
+<p>
+  <a href="[https://opensource.org/licenses/MIT](https://opensource.org/licenses/MIT)"><img src="https&#58;//img&#46;shields&#46;io/badge/License-MIT-yellow.svg" alt="License: MIT"></a>
+  <a href="[https://modelcontextprotocol.io/](https://modelcontextprotocol.io/)"><img src="https&#58;//img&#46;shields&#46;io/badge/MCP-Supported-blue.svg" alt="MCP Protocol"></a>
+</p>
 
 **Let your AI agent solve CAPTCHAs on its own.** A Model Context Protocol (MCP) server for
 CapMonster Cloud, available as a Python package and as a TypeScript port ([`ts/`](ts)).
