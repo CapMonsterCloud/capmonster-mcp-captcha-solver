@@ -120,3 +120,5 @@ the terms of service of those websites and applicable law.
 
 ## 📄 License
 [MIT](LICENSE)
+
+<a href="https://devhunt.org/tool/capmonster-cloud-mcp" target="_blank" title="CapMonster Cloud MCP on DevHunt"><img src="https://devhunt.org/badge/capmonster-cloud-mcp.svg" alt="CapMonster Cloud MCP - Featured on DevHunt" width="220" height="54" /></a>
