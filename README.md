@@ -11,6 +11,7 @@
   <a href="https://modelcontextprotocol.io/"><img src="https://img.shields.io/badge/MCP-Supported-blue.svg" alt="MCP Protocol"></a>
   <a href="https://pypi.org/project/capmonster-mcp/"><img src="https://img.shields.io/pypi/v/capmonster-mcp" alt="PyPI"></a>
   <a href="https://www.npmjs.com/package/capmonster-mcp"><img src="https://img.shields.io/npm/v/capmonster-mcp" alt="npm"></a>
+  <a href="https://glama.ai/mcp/servers/CapMonsterCloud/capmonster-mcp-captcha-solver"><img src="https://glama.ai/mcp/servers/CapMonsterCloud/capmonster-mcp-captcha-solver/badges/score.svg" alt="CapMonsterCloud/capmonster-mcp-captcha-solver MCP server"></a>
 </p>
 
 **Let your AI agent solve CAPTCHAs on its own.** A Model Context Protocol (MCP) server for
