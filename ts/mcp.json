@@ -4,7 +4,7 @@
       "command": "npx",
       "args": ["-y", "capmonster-mcp"],
       "env": {
-        "CM_API_KEY": "YOUR_API_KEY"
+        "CAPMONSTER_API_KEY": "YOUR_API_KEY"
       }
     },
     "patchright": {

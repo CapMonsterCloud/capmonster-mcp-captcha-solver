@@ -7,7 +7,7 @@
         "capmonster-mcp"
       ],
       "env": {
-        "CM_API_KEY": "${env:CM_API_KEY}"
+        "CAPMONSTER_API_KEY": "${env:CAPMONSTER_API_KEY}"
       }
     }
   }

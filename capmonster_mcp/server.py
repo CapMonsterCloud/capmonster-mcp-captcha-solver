@@ -2,14 +2,23 @@ import asyncio
 import json
 import re
 from functools import lru_cache
+from typing import Any
 from urllib.parse import urlparse
 
 import httpx
 from fastmcp import Context, FastMCP
 from fastmcp.exceptions import ToolError
+from pydantic import Field
 
-from .config import AppSettings
+from .config import AppSettings, warn_if_legacy_api_key
 from .middleware import ApiKeyMiddleware
+from .skill import (
+    SKILL_URI,
+    get_prompt_def,
+    load_instructions,
+    load_skill,
+    render_prompt,
+)
 
 OPENAPI_URL = "https://api.capmonster.cloud/docs/swagger-ui/spec.js"
 USER_AGENT_URL = "https://capmonster.cloud/api/useragent/actual"
@@ -92,8 +101,53 @@ def _openapi_collect_properties(
 
 CAPMONSTER_API_URL = "https://api.capmonster.cloud"
 
+# MCP tool annotations (hints for clients: run read-only tools without asking,
+# confirm before tools that spend balance). Keep in sync with ts/src/server.ts.
+READ_ONLY_TOOL = {
+    "readOnlyHint": True,
+    "idempotentHint": True,
+    "openWorldHint": True,
+}
+LOCAL_READ_ONLY_TOOL = {
+    "readOnlyHint": True,
+    "idempotentHint": True,
+    "openWorldHint": False,
+}
+PAID_TOOL = {
+    "readOnlyHint": False,
+    "idempotentHint": False,
+    "destructiveHint": False,
+    "openWorldHint": True,
+}
+
 settings = AppSettings()
-mcp = FastMCP(settings.mcp_server_name)
+mcp = FastMCP(settings.mcp_server_name, instructions=load_instructions())
+
+
+@mcp.resource(
+    SKILL_URI,
+    name="capmonster-mcp-skill",
+    title="CapMonster skill (procedure for solving captchas)",
+    description=(
+        "Step-by-step procedure for analyzing a captcha-protected page and "
+        "solving it with this server. Read it before the first captcha task."
+    ),
+    mime_type="text/markdown",
+)
+def skill_resource() -> str:
+    return load_skill()
+
+
+@mcp.tool(annotations=LOCAL_READ_ONLY_TOOL)
+async def get_skill() -> str:
+    """Return the full CapMonster skill (SKILL.md): the step-by-step procedure for
+    analyzing a captcha-protected page and solving it with this server.
+
+    Read it before the first captcha task. It is the same text as the MCP resource
+    skill://capmonster-mcp/SKILL.md; use this tool if your client cannot read
+    resources. Needs no API key.
+    """
+    return load_skill()
 
 
 async def _api_post(path: str, body: dict) -> dict:
@@ -118,31 +172,53 @@ async def _api_post(path: str, body: dict) -> dict:
     return data
 
 
-@mcp.prompt()
-def analyze_and_solve(url: str, language: str = "python") -> str:
-    """Generate a full solve workflow for a page containing a captcha.
+def _prompt_meta(name: str) -> dict[str, str]:
+    prompt = get_prompt_def(name)
+    return {
+        "name": name,
+        "title": prompt["title"],
+        "description": prompt["description"],
+    }
 
-    Args:
-        url: target page URL
-        language: language for generated Playwright scripts (default: python)
+
+def _arg(name: str, prompt: str) -> Any:
+    """Field for a prompt argument; description and required-ness from prompts.json.
+
+    Plain ``str`` annotations on purpose: FastMCP appends a JSON-schema note to the
+    description of any other annotation, which would clutter the slash-command UI.
     """
-    return f""""
-    I need to solve the task on this page using capmonster: {url}
-    Please:
-
-    1. Open the page in the patchright MCP browser (browser_navigate) and read the
-       live DOM/network (browser_snapshot, browser_evaluate, browser_network_requests)
-       to identify the captcha vendor. If the challenge is gated behind a click,
-       form submit, scroll, or login, perform that interaction first — the whole
-       flow stays in the patchright browser, which is stateful across tool calls.
-    2. Analyze what you found and write a {language} detect() function that extracts the necessary parameters — then show me what it would return for this page
-    3. Use create_task with the detected parameters to solve it via CapMonster, then poll with get_task_result until ready.
-    4. Write a {language} inject(data) function based on the page and detected callback that injects the solution data and fires the callback (apply it in-session with browser_evaluate / browser_click to verify it works)
-    5. Show me the final detect() and inject() functions together as a reusable Playwright script that allows me to solve the challenge on this page again if I would want to. Use capmonster API to get the solution. Do not use capmonster SDK, since the SDK may not be up to date. In the script make sure to use page.goto(url, timeout=60000) and page.wait_for_timeout(2000) after that, since some pages may intentionally keep the network busy.
-    """
+    arg = next(a for a in get_prompt_def(prompt)["arguments"] if a["name"] == name)
+    if arg["required"]:
+        return Field(description=arg["description"])
+    return Field(default="", description=arg["description"])
 
 
-@mcp.tool()
+# Prompts are user-started scenarios (slash commands in clients that support them).
+# Texts, titles and argument descriptions live in capmonster_agent/prompts.json, shared
+# with the TypeScript server; the procedure itself lives only in SKILL.md.
+@mcp.prompt(**_prompt_meta("check_setup"))
+def check_setup() -> str:
+    return render_prompt("check_setup")
+
+
+@mcp.prompt(**_prompt_meta("solve_captcha"))
+def solve_captcha(
+    url: str = _arg("url", "solve_captcha"),
+    how_it_appears: str = _arg("how_it_appears", "solve_captcha"),
+    hints: str = _arg("hints", "solve_captcha"),
+) -> str:
+    return render_prompt("solve_captcha", url=url, how_it_appears=how_it_appears, hints=hints)
+
+
+@mcp.prompt(**_prompt_meta("integrate_into_project"))
+def integrate_into_project(
+    language: str = _arg("language", "integrate_into_project"),
+    module_path: str = _arg("module_path", "integrate_into_project"),
+) -> str:
+    return render_prompt("integrate_into_project", language=language, module_path=module_path)
+
+
+@mcp.tool(annotations=READ_ONLY_TOOL)
 async def get_actual_user_agent() -> str:
     """Fetch a current, real-world (Windows) User-Agent string from CapMonster's
     UA service.
@@ -168,7 +244,7 @@ async def get_actual_user_agent() -> str:
     return response.text.strip()
 
 
-@mcp.tool()
+@mcp.tool(annotations=PAID_TOOL)
 async def create_task(ctx: Context, task: dict | None = None, task_file: str | None = None) -> str:
     """Submit a captcha task; returns taskId. Poll with get_task_result.
 
@@ -251,7 +327,7 @@ async def _poll_task_result(key: str, task_id: int) -> dict:
     raise ToolError(f"Unexpected status '{status}' for task {task_id}.")
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY_TOOL)
 async def get_task_result(ctx: Context, task_id: int) -> dict:
     """Fetch a task result ONCE (a single poll).
 
@@ -279,7 +355,7 @@ async def get_task_result(ctx: Context, task_id: int) -> dict:
     return await _poll_task_result(key, task_id)
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY_TOOL)
 async def get_task_result_wait(
     ctx: Context,
     task_id: int,
@@ -329,7 +405,7 @@ async def get_task_result_wait(
     )
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY_TOOL)
 async def get_balance(ctx: Context) -> str:
     """Get CapMonster account balance."""
     key = await ctx.get_state("cm_api_key")
@@ -337,7 +413,7 @@ async def get_balance(ctx: Context) -> str:
     return f"Balance: {data['balance']}"
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY_TOOL)
 async def get_supported_tasks() -> list[str]:
     """List captcha task types supported by CapMonster, sourced from the OpenAPI spec.
     """
@@ -353,7 +429,7 @@ async def get_supported_tasks() -> list[str]:
     return top_level + custom
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY_TOOL)
 async def get_task_parameters(task_type: str) -> dict:
     """Return the parameters for a CapMonster task type, from the live OpenAPI spec.
 
@@ -450,7 +526,7 @@ async def _fetch_doc(url: str) -> str:
     return res.text
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY_TOOL)
 async def get_docs(
     url: str,
     offset: int = 0,
@@ -539,6 +615,7 @@ mcp.add_middleware(ApiKeyMiddleware())
 
 
 def main() -> None:
+    warn_if_legacy_api_key(settings)
     mcp.run(transport="stdio")
 
 

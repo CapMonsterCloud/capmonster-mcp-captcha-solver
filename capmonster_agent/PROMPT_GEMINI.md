@@ -16,20 +16,11 @@ Runs the published `capmonster-mcp` PyPI package (no cloning needed):
 {
   "command": "uvx",
   "args": ["capmonster-mcp"],
-  "env": { "CM_API_KEY": "..." }
+  "env": { "CAPMONSTER_API_KEY": "..." }
 }
 ```
 
-Exposed tools:
-
-- `get_supported_tasks`
-- `get_task_parameters`
-- `get_docs`
-- `create_task`
-- `get_task_result`
-- `get_task_result_wait`
-- `get_actual_user_agent`
-- `get_balance`
+Its tools and their descriptions appear in your client once connected.
 
 > `get_task_result_wait` polls a task to completion for you. Prefer it over looping `get_task_result` by hand.
 
@@ -55,11 +46,13 @@ Notes:
 
 ## 2. Workflow skill
 
-Fetch and follow this as your working instructions for analyzing and solving captchas with the two servers together. Do this whether or not your environment has a first-class "skill" feature.
+Follow this as your working instructions for analyzing and solving captchas with the two servers together. Do this whether or not your environment has a first-class "skill" feature.
 
-<https://raw.githubusercontent.com/CapMonsterCloud/capmonster-mcp-captcha-solver/main/capmonster_agent/SKILL.md>
+Read it from the capmonster server once it is connected: the MCP resource `skill://capmonster-mcp/SKILL.md`, or the `get_skill` tool if your client cannot read resources. Only if that server is not connected yet or cannot be reached, fetch the same file from <https://raw.githubusercontent.com/CapMonsterCloud/capmonster-mcp-captcha-solver/main/capmonster_agent/SKILL.md>.
 
-It is a strict, ordered procedure. Follow the numbered steps in order.
+It is a strict, ordered procedure. Follow the numbered steps for your path, in order.
+
+If I ask you to integrate CapMonster into my project (not just solve one page), finish with the skill's "Move the solve into the user's code" step. If I already give you the task type and parameters and no page analysis is needed, use the skill's no-browser path: the capmonster server alone, no patchright.
 
 ## 3. Docs
 
@@ -71,15 +64,15 @@ The capmonster MCP `get_docs(url)` tool fetches any CapMonster doc page (`docs.c
   - how to extract them from a live page (DevTools + Playwright/JS snippet);
   - worked `createTask` / `getTaskResult` examples.
 - `get_docs` paginates large pages and supports `section="..."` to jump straight to a section.
+- The page is the authority for field names. Cross-check them with `get_task_parameters` before creating a task.
 - **Do NOT** pull the full single-file dump (<https://docs.capmonster.cloud/llms-full.txt>, the entire site at once). Read the one per-vendor page instead.
-- The `llms.txt` index tagline lists "hCaptcha", but hCaptcha is **not** a supported task type (it is absent from `get_supported_tasks`). Trust `get_supported_tasks`.
 - If you have no MCP access, fetch the per-type URLs directly instead.
 
 ## 4. Full API spec
 
 Machine-readable contract: <https://api.capmonster.cloud/docs/swagger-ui/spec.js>
 
-Use it if you don't have MCP access and need to call the REST API directly, or to double-check a parameter the reference above doesn't cover.
+Use it if you don't have MCP access and need to call the REST API directly, or as the last fallback for a field the type's docs page and `get_task_parameters` leave unclear.
 
 ## 5. Validate the setup
 
@@ -87,7 +80,7 @@ Before starting, confirm that:
 
 1. Each capmonster tool responds: call `get_supported_tasks` and `get_balance`.
 2. `get_docs` can fetch <https://docs.capmonster.cloud/llms.txt>.
-3. The patchright browser opens: `browser_navigate` to any page.
+3. Unless this is the no-browser path (task type and parameters already known, no page to analyze): the patchright browser opens, `browser_navigate` to any page.
 
 If any of these fails, **stop and tell the user what is wrong** instead of proceeding.
 

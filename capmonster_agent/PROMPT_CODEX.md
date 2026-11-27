@@ -27,15 +27,15 @@ args = ["-y", "capmonster-mcp-patchright"]
 
 Preserve unrelated configuration.
 
-CapMonster requires CM_API_KEY:
+CapMonster requires CAPMONSTER_API_KEY:
 - If a usable key already exists in the server's env, reuse it.
 - If it is available in Codex's environment, prefer passing it through:
 
-env_vars = ["CM_API_KEY"]
+env_vars = ["CAPMONSTER_API_KEY"]
 
 - Do not assume an environment variable set in another shell is available to the current Codex process.
 - If no usable key exists, finish all setup and validation that does not require it, then ask me once for the key.
-- If I supply the key directly, store the actual value as CM_API_KEY in the user-level [mcp_servers.capmonster.env] table.
+- If I supply the key directly, store the actual value as CAPMONSTER_API_KEY in the user-level [mcp_servers.capmonster.env] table.
 - Never print the key, repeat it in a message, expose it in diagnostic output, or write a placeholder as though it were a real credential.
 
 Check that Node.js is version 18 or newer and npx works. If necessary, install or update Node.js yourself when permissions allow, then verify it.
@@ -61,23 +61,24 @@ In CLI, `codex mcp list` can check configured servers, and `/mcp` can show activ
 
 You may test the published servers directly through MCP STDIO to diagnose startup or tool failures. Clearly distinguish those diagnostic tests from successful tool availability in the current Codex session.
 
-3. FETCH AND FOLLOW THE WORKFLOW
+3. READ AND FOLLOW THE WORKFLOW
 
-Fetch and read:
+Read the workflow from the capmonster server once it is connected: the MCP resource skill://capmonster-mcp/SKILL.md, or the get_skill tool if your client cannot read resources. Only if that server is not connected yet or cannot be reached, fetch the same file from:
 
 https://raw.githubusercontent.com/CapMonsterCloud/capmonster-mcp-captcha-solver/main/capmonster_agent/SKILL.md
 
-Follow its numbered solving procedure in order once setup validation is complete and the target details are available.
+Follow its numbered solving procedure for your path (it says which), in order, once setup validation is complete and the target details are available.
 
 For this request, perform setup and neutral-page validation before asking for missing target details.
 
-The finish line is a solution accepted by the target page, not merely a token returned by CapMonster.
+The finish line is set by my goal, as the skill's "Where to stop" section defines it. When solving a page, the target page must accept the solution; a token returned by CapMonster is not enough.
+
+If I ask you to integrate CapMonster into my project (not just solve one page), finish with the skill's "Move the solve into the user's code" step. If I already give you the task type and parameters and no page analysis is needed, use the skill's no-browser path: the capmonster server alone, no patchright.
 
 In particular:
 - Call get_supported_tasks before opening the target page.
 - Identify the captcha using the live page and the current supported-task list.
 - Read the captcha type's documentation before writing extraction code.
-- Do not assume hCaptcha is supported based on a marketing tagline. Trust the current get_supported_tasks response.
 
 4. VALIDATE BEFORE OPENING THE TARGET PAGE
 
@@ -85,7 +86,7 @@ Run these checks yourself:
 - capmonster.get_supported_tasks returns a task list;
 - capmonster.get_balance succeeds;
 - capmonster.get_docs fetches https://docs.capmonster.cloud/llms.txt;
-- patchright.browser_navigate opens a neutral page such as https://example.com.
+- unless this is the no-browser path (task type and parameters already known, no page to analyze), patchright.browser_navigate opens a neutral page such as https://example.com.
 
 Use the actual tool names exposed by the servers; their prefixes may differ between clients.
 
@@ -118,7 +119,7 @@ After identifying the captcha:
 - Use capmonster.get_docs to read its individual documentation page, selected from https://docs.capmonster.cloud/llms.txt.
 - Read the exact task parameters, extraction method, solution shape, and complete worked example.
 - If the page is paginated, fetch the remaining relevant sections.
-- Use get_task_parameters to cross-check the current task schema.
+- The docs page is the authority for field names; use get_task_parameters to cross-check the task schema and report any discrepancy.
 - Do not fetch llms-full.txt as a routine shortcut.
 - If an exact parameter still needs verification, consult:
   https://api.capmonster.cloud/docs/swagger-ui/spec.js

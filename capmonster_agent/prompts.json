@@ -1,0 +1,56 @@
+{
+  "prompts": [
+    {
+      "name": "check_setup",
+      "title": "Check CapMonster setup",
+      "description": "Check that CapMonster and the browser work before solving a captcha",
+      "arguments": [],
+      "template": "Check that CapMonster is ready to use. Run each check yourself, then report one pass/fail line per check and, for every failure, what to fix. Do not start solving anything.\n\n1. capmonster server: call get_supported_tasks and get_balance. Report how many task types are supported and the balance. An error about a missing key means CAPMONSTER_API_KEY is not set in this MCP server's environment.\n2. Docs access: call get_docs for https://docs.capmonster.cloud/llms.txt and confirm it returns content.\n3. Browser (needed only to analyze live pages; skip it if I only want CapMonster integrated into code): with the patchright server, open https://example.com (browser_navigate) and confirm a page snapshot comes back.\n\nIf a check fails, stop and tell me what is wrong instead of continuing."
+    },
+    {
+      "name": "solve_captcha",
+      "title": "Solve a captcha on a page",
+      "description": "Solve a captcha on a web page: identify it, get a token from CapMonster, inject it and verify",
+      "arguments": [
+        {
+          "name": "url",
+          "description": "Address of the page with the captcha",
+          "required": true
+        },
+        {
+          "name": "how_it_appears",
+          "description": "When the captcha shows up: right away, after a click, after login...",
+          "required": false,
+          "default": "not specified: find out from the page, and ask me if a login or a click is needed"
+        },
+        {
+          "name": "hints",
+          "description": "Optional hints: proxy to use, region, anything that blocks the page",
+          "required": false,
+          "default": "none given"
+        }
+      ],
+      "template": "Solve the captcha on this page with CapMonster: {url}\n\nRead the CapMonster skill first (MCP resource skill://capmonster-mcp/SKILL.md, or call get_skill) and follow its steps in order, from Step 1. Do not open the page before Step 2 (get_supported_tasks). Treat the details below as my Step-1 answers and ask only about what is still missing.\n\nHow the captcha appears: {how_it_appears}\nProxy / region hints: {hints}\n\nFinish line: a solve you have injected and verified in the browser (through Step 8). Do not write project code unless I ask; the integrate_into_project prompt is for that."
+    },
+    {
+      "name": "integrate_into_project",
+      "title": "Add CapMonster to my project",
+      "description": "Put a working CapMonster captcha solve into my project's code with the official SDK",
+      "arguments": [
+        {
+          "name": "language",
+          "description": "Language of the project, if it is not obvious",
+          "required": false,
+          "default": "detect it from the project"
+        },
+        {
+          "name": "module_path",
+          "description": "File or module where the code should go",
+          "required": false,
+          "default": "pick a fitting place in the project and tell me where"
+        }
+      ],
+      "template": "Move the CapMonster solve into my project's code. Read the CapMonster skill first (MCP resource skill://capmonster-mcp/SKILL.md, or call get_skill) and finish with Step 9: the official CapMonster SDK for the project's language, the API key from CAPMONSTER_API_KEY, and the userAgent from the solution applied to follow-up requests.\n\nLanguage: {language}\nWhere the code should go: {module_path}\n\nIf this conversation has no successful test solve of this captcha yet, get one first by the path the skill's \"Pick your path\" names for what you already know: the no-browser path when the task type and parameters are known, the browser path when the page has to be analyzed. Then write the code so it mirrors that verified flow."
+    }
+  ]
+}

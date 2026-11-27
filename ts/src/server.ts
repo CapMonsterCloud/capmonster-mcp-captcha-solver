@@ -5,7 +5,8 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import { apiPost, pollTaskResult, pollTaskResultWait, USER_AGENT_URL } from "./capmonster.js";
-import { loadSettings } from "./config.js";
+import { loadInstructions, loadPrompts, loadSkill, renderPrompt, SKILL_URI } from "./agent-docs.js";
+import { API_KEY_ENV, LEGACY_KEY_WARNING, loadSettings } from "./config.js";
 import { DOCS_ALLOWED_HOSTS, DOCS_CHUNK_SIZE, getDocs, ToolError } from "./docs.js";
 import { getSupportedTasks, getTaskParameters } from "./tasks.js";
 
@@ -13,6 +14,21 @@ const require = createRequire(import.meta.url);
 const packageVersion: string = require("../package.json").version;
 
 const settings = loadSettings();
+
+// MCP tool annotations (hints for clients: run read-only tools without asking,
+// confirm before tools that spend balance). Keep in sync with capmonster_mcp/server.py.
+const READ_ONLY_TOOL = { readOnlyHint: true, idempotentHint: true, openWorldHint: true } as const;
+const LOCAL_READ_ONLY_TOOL = {
+  readOnlyHint: true,
+  idempotentHint: true,
+  openWorldHint: false,
+} as const;
+const PAID_TOOL = {
+  readOnlyHint: false,
+  idempotentHint: false,
+  destructiveHint: false,
+  openWorldHint: true,
+} as const;
 
 function textResult(text: string): { content: Array<{ type: "text"; text: string }> } {
   return { content: [{ type: "text", text }] };
@@ -28,59 +44,80 @@ function errorResult(error: unknown): { content: Array<{ type: "text"; text: str
 }
 
 function requireApiKey(): string {
-  if (!settings.cmApiKey) {
-    throw new ToolError("Missing CM_API_KEY env var.");
+  if (!settings.apiKey) {
+    throw new ToolError(`Missing ${API_KEY_ENV} env var.`);
   }
-  return settings.cmApiKey;
+  return settings.apiKey;
 }
 
 export function createServer(): McpServer {
-  const server = new McpServer({
-    name: settings.mcpServerName,
-    version: packageVersion,
-  });
-
-  server.registerPrompt(
-    "analyze_and_solve",
-    {
-      title: "Analyze and solve a captcha",
-      description: "Generate a full solve workflow for a page containing a captcha.",
-      argsSchema: {
-        url: z.string(),
-        language: z.string().optional(),
-      },
-    },
-    ({ url, language }) => {
-      const lang = language ?? "python";
-      return {
-        messages: [
-          {
-            role: "user",
-            content: {
-              type: "text",
-              text: `I need to solve the task on this page using capmonster: ${url}
-Please:
-
-1. Open the page in the patchright MCP browser (browser_navigate) and read the
-   live DOM/network (browser_snapshot, browser_evaluate, browser_network_requests)
-   to identify the captcha vendor. If the challenge is gated behind a click,
-   form submit, scroll, or login, perform that interaction first — the whole
-   flow stays in the patchright browser, which is stateful across tool calls.
-2. Analyze what you found and write a ${lang} detect() function that extracts the necessary parameters — then show me what it would return for this page
-3. Use create_task with the detected parameters to solve it via CapMonster, then poll with get_task_result until ready.
-4. Write a ${lang} inject(data) function based on the page and detected callback that injects the solution data and fires the callback (apply it in-session with browser_evaluate / browser_click to verify it works)
-5. Show me the final detect() and inject() functions together as a reusable Playwright script that allows me to solve the challenge on this page again if I would want to. Use capmonster API to get the solution. Do not use capmonster SDK, since the SDK may not be up to date. In the script make sure to use page.goto(url, timeout=60000) and page.wait_for_timeout(2000) after that, since some pages may intentionally keep the network busy.`,
-            },
-          },
-        ],
-      };
-    },
+  const server = new McpServer(
+    { name: settings.mcpServerName, version: packageVersion },
+    { instructions: loadInstructions() },
   );
+
+  server.registerResource(
+    "capmonster-mcp-skill",
+    SKILL_URI,
+    {
+      title: "CapMonster skill (procedure for solving captchas)",
+      description:
+        "Step-by-step procedure for analyzing a captcha-protected page and solving it with this server. Read it before the first captcha task.",
+      mimeType: "text/markdown",
+    },
+    async (uri) => ({
+      contents: [{ uri: uri.href, mimeType: "text/markdown", text: loadSkill() }],
+    }),
+  );
+
+  server.registerTool(
+    "get_skill",
+    {
+      title: "Get CapMonster skill",
+      annotations: LOCAL_READ_ONLY_TOOL,
+      description: `Return the full CapMonster skill (SKILL.md): the step-by-step procedure for
+analyzing a captcha-protected page and solving it with this server.
+
+Read it before the first captcha task. It is the same text as the MCP resource
+${SKILL_URI}; use this tool if your client cannot read resources. Needs no API key.`,
+      inputSchema: {},
+    },
+    async () => textResult(loadSkill()),
+  );
+
+  // Prompts are user-started scenarios (slash commands in clients that support them).
+  // Texts, titles and argument descriptions live in capmonster_agent/prompts.json, shared
+  // with the Python server; the procedure itself lives only in SKILL.md.
+  for (const def of loadPrompts()) {
+    const reply = (args: Record<string, string | undefined>) => ({
+      messages: [
+        { role: "user" as const, content: { type: "text" as const, text: renderPrompt(def, args) } },
+      ],
+    });
+    if (def.arguments.length === 0) {
+      // No argsSchema at all: an empty one would reject clients that omit `arguments`.
+      server.registerPrompt(def.name, { title: def.title, description: def.description }, () =>
+        reply({}),
+      );
+      continue;
+    }
+    const argsSchema: Record<string, z.ZodString | z.ZodOptional<z.ZodString>> = {};
+    for (const arg of def.arguments) {
+      const field = z.string().describe(arg.description);
+      argsSchema[arg.name] = arg.required ? field : field.optional();
+    }
+    server.registerPrompt(
+      def.name,
+      { title: def.title, description: def.description, argsSchema },
+      (args: Record<string, string | undefined>) => reply(args),
+    );
+  }
 
   server.registerTool(
     "get_actual_user_agent",
     {
       title: "Get actual User-Agent",
+      annotations: READ_ONLY_TOOL,
       description: `Fetch a current, real-world (Windows) User-Agent string from CapMonster's
 UA service.
 
@@ -116,6 +153,7 @@ ERROR_WRONG_USERAGENT, so re-fetch here rather than reusing an old one.`,
     "create_task",
     {
       title: "Create captcha task",
+      annotations: PAID_TOOL,
       description: `Submit a captcha task; returns taskId. Poll with get_task_result.
 
 task must include 'type' and all required fields. Always look up
@@ -174,6 +212,7 @@ though the array had 9 entries when written). Provide exactly one of
     "get_task_result",
     {
       title: "Get task result (single poll)",
+      annotations: READ_ONLY_TOOL,
       description: `Fetch a task result ONCE (a single poll).
 
 Prefer \`get_task_result_wait\`, which polls for you. Use this only if you
@@ -213,6 +252,7 @@ Challenge, FunCaptcha, AWS WAF, Binance, TenDI, Basilisk).`,
     "get_task_result_wait",
     {
       title: "Get task result (poll to completion)",
+      annotations: READ_ONLY_TOOL,
       description: `Poll a task to completion and return its solution (the usual way to
 collect a result after create_task).
 
@@ -261,6 +301,7 @@ proxy) or if the task is still processing when \`timeout_seconds\` is reached
     "get_balance",
     {
       title: "Get CapMonster balance",
+      annotations: READ_ONLY_TOOL,
       description: "Get CapMonster account balance.",
       inputSchema: {},
     },
@@ -279,6 +320,7 @@ proxy) or if the task is still processing when \`timeout_seconds\` is reached
     "get_supported_tasks",
     {
       title: "List supported captcha task types",
+      annotations: READ_ONLY_TOOL,
       description: "List captcha task types supported by CapMonster, sourced from the OpenAPI spec.",
       inputSchema: {},
     },
@@ -296,6 +338,7 @@ proxy) or if the task is still processing when \`timeout_seconds\` is reached
     "get_task_parameters",
     {
       title: "Get task type parameters",
+      annotations: READ_ONLY_TOOL,
       description: `Return the parameters for a CapMonster task type, from the live OpenAPI spec.
 
 Use after get_supported_tasks() to look up what fields a task needs.
@@ -333,6 +376,7 @@ worked examples via get_docs before building the task.`,
     "get_docs",
     {
       title: "Fetch CapMonster documentation",
+      annotations: READ_ONLY_TOOL,
       description: `Fetch a CapMonster documentation page by its URL and return its text.
 
 Use this to read a captcha type's docs (exact task parameters, how to extract
@@ -382,6 +426,12 @@ Paging (when you want the raw text, no section):
 }
 
 async function main(): Promise<void> {
+  // `npx -y capmonster-mcp setup ...` configures a client instead of starting the server
+  if (process.argv[2] === "setup") {
+    const { runSetupCli } = await import("./setup/cli.js");
+    process.exit(await runSetupCli(process.argv.slice(3)));
+  }
+  if (settings.usesLegacyApiKey) console.error(LEGACY_KEY_WARNING);
   const server = createServer();
   const transport = new StdioServerTransport();
   await server.connect(transport);

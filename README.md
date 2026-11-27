@@ -90,7 +90,7 @@ Your AI Agent will be able to automatically solve, among others:
 - **Image-to-Text & Complex Image Tasks**
 
 The authoritative, current list is served live from CapMonster's OpenAPI spec via the
-`get_supported_tasks` tool. **hCaptcha is not currently supported.**
+`get_supported_tasks` tool.
 
 ## 🚀 Quick start
 
@@ -109,6 +109,43 @@ uvx capmonster-mcp
 Prefer TypeScript/Node? See [`ts/README.md`](ts/README.md) for the
 [npm-published port](https://www.npmjs.com/package/capmonster-mcp) — same tools, same behavior.
 
+## One-command setup
+
+```bash
+npx -y capmonster-mcp setup
+```
+
+Registers the `capmonster` and `patchright` servers in your AI client, checks the API key
+(`get_balance`) and looks for Google Chrome. It works for Python users too: it needs Node only
+to run itself (`--runtime python` registers `uvx capmonster-mcp` instead of `npx`).
+
+| Client | `--agent` | Scopes | How it is written |
+|---|---|---|---|
+| Claude Code | `claude-code` | `user`, `project` | `claude mcp add` (user); `.mcp.json` written directly (project) |
+| Codex | `codex` | `user` | `codex mcp add` |
+| Cursor | `cursor` | `user`, `project` | `~/.cursor/mcp.json`, `.cursor/mcp.json` |
+| VS Code | `vscode` | `project` | `.vscode/mcp.json`, the key is asked for at start |
+| Claude Desktop | `claude-desktop` | `user` | `claude_desktop_config.json` (macOS, Windows) |
+
+- **The key.** Taken from `CAPMONSTER_API_KEY`, else from the existing entry, else asked for with
+  hidden input. In the `user` scope it is stored in the client's own config; in the `project`
+  scope (files you commit) only a reference such as `${CAPMONSTER_API_KEY}` is written. The key is
+  never printed in full.
+- **Safe to repeat.** Existing entries are shown and left alone unless you confirm or pass
+  `--force`; files are backed up before they change; an entry that still uses the deprecated
+  `CM_API_KEY` is moved to `CAPMONSTER_API_KEY`.
+- **For an AI agent.** `npx -y capmonster-mcp setup --agent <id> --non-interactive --json` never
+  asks anything, takes the key from the environment only and prints one JSON report. Exit codes:
+  `0` success (warnings allowed), `1` a step failed, `2` missing input. If the key is missing the
+  agent should stop and ask the user to set `CAPMONSTER_API_KEY` or to run setup in a terminal; it
+  must not ask for the key in the chat.
+- **Browser.** `patchright` starts the installed Google Chrome with a window. Setup warns when
+  Chrome is missing (install it, or `npx patchright install chrome`, which needs administrator
+  rights) or when there is no display (use `--headless`).
+- **Dry run.** `--dry-run` shows what would change and writes nothing.
+
+After setup, restart the client and ask the agent to call `get_balance` and `get_supported_tasks`.
+
 ## 🔌 Using with an MCP client (e.g. Claude Desktop)
 
 Add the following to your MCP client's config (e.g. `claude_desktop_config.json`):
@@ -120,7 +157,7 @@ Add the following to your MCP client's config (e.g. `claude_desktop_config.json`
       "command": "uvx",
       "args": ["capmonster-mcp"],
       "env": {
-        "CM_API_KEY": "your_api_key_here"
+        "CAPMONSTER_API_KEY": "your_api_key_here"
       }
     }
   }
@@ -128,7 +165,11 @@ Add the following to your MCP client's config (e.g. `claude_desktop_config.json`
 ```
 
 The server only runs over stdio, so there are no HTTP headers to carry a per-request key —
-`CM_API_KEY` is read once from the environment and shared by every tool call in the session.
+`CAPMONSTER_API_KEY` is read once from the environment and shared by every tool call in the session.
+
+> **Upgrading?** The variable used to be called `CM_API_KEY`. The old name still works as a fallback
+> (the server logs a deprecation warning to stderr), but rename it in your client config: support
+> for `CM_API_KEY` will be removed in a future release.
 
 Pair it with a browser-automation MCP server (e.g.
 [`capmonster-mcp-patchright`](https://www.npmjs.com/package/capmonster-mcp-patchright)) so your
@@ -163,7 +204,7 @@ Already give your AI agent captcha solving through another MCP server? Replace o
       "command": "uvx",
       "args": ["capmonster-mcp"],
       "env": {
-        "CM_API_KEY": "your_api_key_here"
+        "CAPMONSTER_API_KEY": "your_api_key_here"
       }
     }
   }
@@ -190,6 +231,26 @@ Once connected, your LLM will have access to the following tools:
 - `get_actual_user_agent()`: Fetches a current Windows User-Agent to use as one consistent
   fingerprint across the browser and the solve task.
 - `get_balance()`: Checks your current CapMonster Cloud API balance.
+- `get_skill()`: Returns the full skill (the step-by-step procedure for solving a captcha with this
+  server). The same text is served as the MCP resource `skill://capmonster-mcp/SKILL.md`; the tool
+  is for clients that cannot read resources. Needs no API key.
+
+On connect the server also sends short `instructions` telling the agent to read the skill before
+its first captcha task.
+
+### Prompts (ready-made scenarios)
+
+In clients that support MCP prompts (in Claude Code they appear as slash commands such as
+`/mcp__capmonster__solve_captcha`) you can start a scenario explicitly instead of hoping the model
+reads the skill:
+
+- `check_setup`: check that CapMonster, the docs and the browser server respond.
+- `solve_captcha` (`url`, optional `how_it_appears`, `hints`): solve the captcha on a page by
+  following the skill step by step.
+- `integrate_into_project` (optional `language`, `module_path`): move a verified solve into your
+  code with the official SDK.
+
+> **Upgrading?** The old `analyze_and_solve` prompt was removed; use `solve_captcha` instead.
 
 ## ❓ FAQ
 
@@ -200,13 +261,10 @@ Yes. The CapMonster Cloud MCP server covers more captcha types than the CapSolve
 Yes. The 2Captcha `mcp-captcha-solver` project focuses on reCAPTCHA v2, while this server covers many more task types. For reCAPTCHA v3 CapMonster Cloud starts at $0.90 per 1,000 solves versus $1.45 at 2Captcha, which is up to 38% cheaper.
 
 **How do I switch from the CapSolver MCP server to CapMonster Cloud?**
-Replace the `capsolver` entry in your MCP client config with the `capmonster` entry shown in the migration example, set `CM_API_KEY` and restart the client.
+Replace the `capsolver` entry in your MCP client config with the `capmonster` entry shown in the migration example, set `CAPMONSTER_API_KEY` and restart the client.
 
 **How do I bypass reCAPTCHA or Cloudflare Turnstile with Claude or Cursor?**
 Add this server and a browser MCP to your client, then ask the agent to open the protected page and solve it. The agent reads the page parameters, creates a task with `create_task`, waits with `get_task_result_wait` and injects the token through the browser server.
-
-**Does it support hCaptcha?**
-No. hCaptcha is not currently supported.
 
 **How do I get an API key?**
 Register on CapMonster Cloud and copy your API key. See the [Getting Started Guide](https://docs.capmonster.cloud/docs/getting-start/?utm_source=github&utm_medium=referral&utm_campaign=mcp_repo_readme&utm_content=faq).
