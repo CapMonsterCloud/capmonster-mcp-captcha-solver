@@ -50,7 +50,7 @@
     "typescript": "^5.7.0"
   },
   "scripts": {
-    "build": "tsc && node -e \"try{require('fs').chmodSync('dist/server.js',0o755)}catch(e){}\"",
+    "build": "tsc && node scripts/copy-agent-docs.mjs && node -e \"try{require('fs').chmodSync('dist/server.js',0o755)}catch(e){}\"",
     "dev": "tsx src/server.ts",
     "typecheck": "tsc --noEmit",
     "lint": "biome lint src",

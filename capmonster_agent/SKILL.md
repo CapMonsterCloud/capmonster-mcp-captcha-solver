@@ -1,25 +1,45 @@
 ---
 name: capmonster-mcp
-description: How to analyze a captcha-protected page and solve it using the capmonster MCP server (create_task, get_task_result, get_supported_tasks, get_task_parameters, get_docs, get_actual_user_agent, get_balance) as the solve brain, driven by a patchright MCP server (a stealth Playwright browser kept alive across tool calls) that does all page work — navigation, interaction, reading the live DOM/network, and injecting the solution back into the page — and how to turn a solve into a standalone script. Use whenever the user gives a URL with a captcha, asks "what captcha is this / solve this captcha", or wants a reusable script that solves a captcha via CapMonster.
+description: How to analyze a captcha-protected page and solve it using the capmonster MCP server as the solve brain, driven by a patchright MCP server (a stealth Playwright browser kept alive across tool calls) that does all page work — navigation, interaction, reading the live DOM/network, and injecting the solution back into the page — and how to move a working solve into the user's own code with the official CapMonster SDK. Also covers a no-browser path for when the task type and parameters are already known. Use whenever the user gives a URL with a captcha, asks "what captcha is this / solve this captcha", wants a reusable script, or wants CapMonster integrated into their project.
 ---
 
-# CapMonster MCP + patchright MCP: analyze, solve, scriptify
+# CapMonster MCP + patchright MCP: analyze, solve, move into code
 
-This is a **strict, ordered procedure**. Follow the numbered steps in order. Do not
-reorder them, do not skip a step, and do not improvise a shortcut — in particular,
+This is a **strict, ordered procedure**. Pick your path below, then follow its numbered
+steps in order. Within a path, do not reorder them, do not skip a step, and do not
+improvise a shortcut — in particular,
 **do step 2 (`get_supported_tasks`) before you open the page**, and **never write
 extraction code before the step-5 docs lookup**. Each step below states what to do
 and what must be true before you move on.
+
+## Pick your path
+
+- **Browser path (default).** The user gives a URL and the captcha has to be found on the
+  live page: Steps 1–8, then Step 9 if the goal is code. Needs both servers below.
+- **No-browser path.** The task type and its parameters are already known (from the user's
+  existing code, a previous run, or the user's own words), or the only job is to integrate
+  CapMonster into a backend. Do not open any page and do not use patchright — the
+  `capmonster` server alone is enough: Step 2 → Step 5 (the type's docs page +
+  a `get_task_parameters` cross-check) → Step 7 (one test `create_task` +
+  `get_task_result_wait`) → Step 9.
+  Skip Steps 1, 3, 4, 6 and 8. This is the one sanctioned shortcut; if the type needs
+  values that only exist on a live page (tokens, nonces that change per load), you cannot
+  know them in advance — take the browser path.
+
+Whichever path you take, if the solve has to end up in the user's code, finish with Step 9:
+the official CapMonster SDK for the project's language, not hand-written REST calls (REST only
+when the SDK does not fit the project's stack, see Step 9).
 
 ## The two servers (roles, never conflated)
 
 - **`capmonster` MCP** (`mcp__capmonster__*`) — the **solve brain**. Backed by
   CapMonster Cloud. It has **no browser**: it lists task types, serves docs, creates
-  and polls the solve task. Tools: `get_supported_tasks`, `get_task_parameters`,
-  `get_docs`, `create_task`, `get_task_result`, `get_task_result_wait`,
-  `get_actual_user_agent`, `get_balance`.
+  and polls the solve task. Your client lists its tools; each tool's description is the
+  reference for its arguments and limits (polling interval, how long a result is kept)
+  — don't rely on numbers from memory or from this skill. The skill itself is also
+  available as the `get_skill` tool.
 - **`patchright` MCP** (`mcp__patchright__*`, the `capmonster-mcp-patchright` npm package) — the
-  **eyes and hands**: a live, stateful, stealth browser (a hardened Playwright fork
+  **eyes and hands** (browser path only): a live, stateful, stealth browser (a hardened Playwright fork
   that defeats most automation detection), headed by default, that keeps one browser
   context alive across tool calls. Everything that touches the page goes through it:
   navigation, clicks/typing/submits, reading the live DOM/network, and injecting the
@@ -42,19 +62,23 @@ and what must be true before you move on.
   > blob (several base64 images, a full page's HTML, …): typing or re-pasting such a
   > value into another tool call's arguments by hand risks silently corrupting it.
 
-There is exactly one browser (patchright's). Do all page work in patchright and all
-solving in capmonster.
+On the browser path there is exactly one browser (patchright's). Do all page work in
+patchright and all solving in capmonster.
 
 ## Where to stop (decide this before you start)
 
 The user's goal sets the finish line. Read it, pick one, and stop there:
 
 - **"Is this captcha type supported?"** → finish after **Step 4** (identified the
-  vendor and confirmed it maps to a supported task type). Do not solve.
+  vendor and confirmed it maps to a type in the Step-2 list; that list is the authority
+  here, the Step-5 docs lookup is not needed). Do not solve.
 - **"Does CapMonster return a token on this page?"** → finish after **Step 7**
   (a successful `get_task_result`). Do not inject.
 - **"Give me a working / reusable solve (script)"** → go all the way through
-  **Step 8** (injection verified), then Step 9 if a standalone script was requested.
+  **Step 8** (injection verified), then Step 9 if a script was requested.
+- **"Integrate CapMonster into my project / backend"** → finish with **Step 9**: code in
+  the user's project using the official SDK. Run a successful test solve first (Step 7);
+  on the browser path also Step 8, so the integration is built on a flow you verified.
 
 Announce which finish line you're working toward at the start.
 
@@ -161,7 +185,9 @@ must have it before you look at the page. Note which entries are top-level types
 (e.g. `RecaptchaV2Task`, `TurnstileTask`) and which are `CustomTask` classes
 (e.g. `DataDome`, `Imperva`, `TenDI`) — see Step 5.
 
-Do not proceed to Step 3 until you have the task-type list.
+Do not proceed to Step 3 until you have the task-type list. If a setup check already called
+`get_supported_tasks` in this conversation (it may run before Step 1), that list counts; do not
+call it again.
 
 ## Step 3 — Open the page in patchright
 
@@ -203,8 +229,8 @@ The **Task type** column is the exact CapMonster task type / `CustomTask` class 
 
 This table exists to **recognise the vendor and pick the task type** — nothing more. It
 deliberately does **not** list required fields or the solution shape: those come from
-`get_task_parameters` + `get_docs` in Step 5 (the authoritative, current source), and a
-duplicated copy here would only drift out of date. "What to pull" names the raw values to
+the per-type docs page in Step 5 (the authority for field names), cross-checked with
+`get_task_parameters`, and a duplicated copy here would only drift out of date. "What to pull" names the raw values to
 read off the page so you know what to look for; Step 5 tells you which task fields they
 map to and how they nest.
 
@@ -238,13 +264,6 @@ map to and how they nest.
 Note the CapMonster type names that do **not** match the vendor's own name: AWS WAF →
 `AmazonTask`, Yidun → `YidunTask`, Tencent → `CustomTask · TenDI`, Incapsula →
 `CustomTask · Imperva`.
-
-**hCaptcha is NOT supported.** CapMonster's own marketing tagline (in `llms.txt`) lists
-"hCaptcha", but that line is stale/aspirational: there is no hCaptcha task type, no
-`class`, and no hCaptcha page anywhere in the docs, and the FAQ's supported-types list
-omits it. `get_supported_tasks` is authoritative — it returns no hCaptcha type. So if you
-positively identify hCaptcha, say so and treat it as **unsupported**; do not force it onto
-a reCAPTCHA type, and don't be talked out of that by the tagline.
 
 **CustomTask vs. top-level type:** DataDome, TenDI, Imperva, altcha, tspd, HUNT,
 alibaba, friendly, and Basilisk are `{"type":"CustomTask","class":"<class>", …}` (class
@@ -284,7 +303,7 @@ is only an index — it does not count as "consulting the docs" and may be out o
 so confirm the type and fields here even when the table already looks complete.
 
 > **⚠️ Read the ENTIRE doc page for the solved type — do not grep it in fragments.**
-> The vendor page is the source of truth, and its **worked "Examples of solving…"
+> The vendor page is the source of truth for the *procedure*, and its **worked "Examples of solving…"
 > section is the canonical flow** — often materially different from the Step-4 table and
 > from the parameter-*extraction* snippet earlier on the same page. Skim only the marker
 > table + "How to find parameters" snippet and you'll miss the real create/solve/inject
@@ -323,15 +342,27 @@ so confirm the type and fields here even when the table already looks complete.
    to a subagent (Agent tool) to extract and summarize just that vendor's section — never
    read the full dump inline yourself. (`get_docs` only fetches `docs.capmonster.cloud` /
    `api.capmonster.cloud` URLs.)
-2. **`get_task_parameters(task_type)`** — the live, authoritative field list for that
-   exact type or `CustomTask` class (required vs. optional, nesting, enums).
+2. **`get_task_parameters(task_type)`** — a machine-readable field list for that exact
+   type or `CustomTask` class (required vs. optional, nesting, enums), read from the
+   OpenAPI spec. Use it to **cross-check** the page, not to replace it.
 
-Cross-check the two. If they disagree, trust `get_task_parameters` (it reads the
-current OpenAPI spec) and note the discrepancy. Do not extrapolate a shape from a
-different vendor's task, and do not settle on a plausible-sounding type name on the
-strength of only one source. Some types require a proxy to solve at all — if the docs
-list proxy fields, treat that as a signal, and if the user gave no proxy, be ready to
-ask for one in Step 7.
+**Order of trust** when sources disagree about a field name, its nesting, whether it is
+required, or an enum value:
+
+1. **the per-type docs page** — field names, nesting, required/optional, the solution
+   shape, and the procedure (how to extract each parameter, the worked example);
+2. `get_task_parameters` / the OpenAPI spec
+   (`https://api.capmonster.cloud/docs/swagger-ui/spec.js`) — a cross-check against typos
+   and drift, and the fallback when the type has no docs page.
+
+Build the task from the docs page, then compare it with `get_task_parameters`. If they
+differ, follow the docs page and write the discrepancy down so you can tell the user; if
+`create_task` then rejects the task with a validation error, re-read that field in the spec
+before changing anything else. The list of supported task types comes from
+`get_supported_tasks`. Do not extrapolate a shape from a different vendor's task, and do
+not settle on a plausible-sounding type name on the strength of only one source. Some types
+require a proxy to solve at all — if the docs list proxy fields, treat that as a signal, and
+if the user gave no proxy, be ready to ask for one in Step 7.
 
 **Follow the doc's worked example over your own instinct.** When the "Examples of
 solving…" section shows a specific way to obtain the challenge HTML/params (e.g. a raw
@@ -367,7 +398,6 @@ and confirm. Example one-pass probe (adapt selectors/regex to the vendor):
     inlineSitekey:    (html.match(/sitekey["']?\s*[:=]\s*["']([\w-]+)/i) || [])[1] || null,
     globals: {
       grecaptcha: typeof window.grecaptcha,
-      hcaptcha:   typeof window.hcaptcha,
       turnstile:  typeof window.turnstile,
       geetest4:   typeof window.initGeetest4,
     },
@@ -512,10 +542,13 @@ other single-shot large field a vendor's docs call for (e.g. a full challenge JS
 ## Step 7 — Create the task and poll (loop on error)
 
 `create_task(task={...})` with the extracted params, then collect the result
-with `get_task_result_wait(task_id=...)`, which polls to completion for you (respecting the
-2 s-minimum interval and 120-poll cap). Use `get_task_result(task_id=...)` only if you want
-to drive the loop yourself — poll no faster than once per 2 s, and don't dawdle: a task
-result is stored for only **~5 minutes** before it expires (`ERROR_NO_SUCH_CAPCHA_ID`).
+with `get_task_result_wait(task_id=...)`, which polls to completion for you, within the API's
+polling limits. Use `get_task_result(task_id=...)` only if you want to drive the loop
+yourself; the tool descriptions state the polling limits and how long a result is kept
+(an expired result comes back as `ERROR_NO_SUCH_CAPCHA_ID`). The per-type polling schedule matters
+only for project code: see Step 9. In this session, solve through the `capmonster` tools, not through
+hand-made REST calls (curl, requests); REST belongs only in the code you write for the user, and
+there only when no SDK fits (Step 9).
 
 - **On error** → recheck the docs (Step 5), recheck the live page and the extraction
   output (Step 6), correct the task object, and `create_task` again. Loop until the
@@ -574,26 +607,72 @@ solves — (3) that the callback was invoked in **`world:"main"`** (an isolated-
 silently no-ops because the callback isn't defined there) before concluding the solve
 failed.
 
-## Step 9 — Turn the solve into a standalone script (only if asked)
+## Step 9 — Move the solve into the user's code (only if asked)
 
-Mirror the interactive flow in plain code the user owns: load the page with `patchright`
-(same stealth engine), do any gating interaction, run the Step-6 `detect()`, call the
-CapMonster **REST API directly** to create+poll the task, then run the Step-8
-`inject()` and continue.
+Mirror the flow you just verified in code the user owns: obtain the challenge parameters,
+create the task, collect the result, apply the solution, continue. Only the tooling changes.
 
+**Choose the client.**
+
+- **Use the official CapMonster SDK for the project's language.** The type's docs page (Step 5)
+  carries a worked example per supported language: take the package name and the request class
+  from it, and check them against the SDK's own README (repositories `capmonster-<language>-captcha-solver`
+  under `github.com/CapMonsterCloud`). Don't recall names from memory. The SDK already holds what you would otherwise copy by hand:
+  a request class per task type (the parameter list), the polling schedule and total
+  timeout tuned per task type, and typed errors. Build the request from the SDK's class and
+  let the SDK poll; don't re-create parameter dicts or polling next to it.
+- **Fall back to the REST API** ([createTask](https://docs.capmonster.cloud/docs/api/methods/create-task.txt),
+  [getTaskResult](https://docs.capmonster.cloud/docs/api/methods/get-task-result.txt)) when the
+  project's language has no SDK, or the SDK has no request class for the task type you need
+  (an SDK can lag the API), or the SDK does not fit the project's stack: its async or HTTP client
+  conflicts with the one the project uses (say, the project is built on `asyncio` with its own HTTP
+  layer or on synchronous code), a new dependency is not allowed, or it cannot apply a proxy or TLS
+  setting the project requires. Tell the user which reason applies. Either way, check the task type and every field name against
+  the per-type docs page (and cross-check with `get_task_parameters`): an SDK's parameter
+  names can differ from the API's.
+
+**Requirements for the code you write.**
+
+- **API key:** read it from the `CAPMONSTER_API_KEY` environment variable and pass it to the
+  client. Never hardcode it, never write a real key into a file the project commits, and
+  never put it into frontend or browser code — CapMonster calls run on the user's backend.
+- **Timeouts:** with an SDK, keep its per-type polling schedule and set only the HTTP
+  request timeout it exposes. With raw REST, take the first-request delay, polling interval
+  and total timeout for the task type from the same schedule the SDKs use — the per-type
+  docs page, or the SDK source, e.g. the Python SDK's
+  [`GetResultTimeouts.py`](https://github.com/CapMonsterCloud/capmonster-python-captcha-solver/blob/main/capmonstercloud_client/GetResultTimeouts.py)
+  — and fall back to the limits in the `get_task_result_wait` / `get_task_result` tool
+  descriptions if neither gives the type. Put polling in one wrapper function with a hard
+  overall deadline, and never poll in an unbounded loop.
+- **`userAgent` from the solution:** if the solution carries a `userAgent` (or
+  `headers["User-Agent"]`), send every follow-up request that uses the token with exactly
+  that value, and keep the whole session on it. A token paired with a different UA is
+  often rejected even though CapMonster solved it.
+- **Per-run values:** the code must obtain one-time parameters (tokens, nonces, challenge
+  values) from the page on every run. Never copy values from the interactive session into
+  the code.
+- **Errors:** tell apart errors a retry cannot fix (bad key, no balance, invalid
+  parameters) from transient ones ([error list](https://docs.capmonster.cloud/docs/api/api-errors.txt));
+  retry a transient failure with a bounded number of attempts (Step 7: `ERROR_CAPTCHA_UNSOLVABLE`
+  is retried once with identical parameters).
+- **Browser only when the project needs one.** A backend that already has the parameters
+  needs no `patchright`, only the CapMonster client. If the project does drive a browser,
+  see below.
+
+**If the code drives a browser:**
+
+- Load the page with `patchright` (same stealth engine), do any gating interaction, run
+  the Step-6 `detect()`, call CapMonster (SDK or REST, per above) to create and collect the
+  task, then run the Step-8 `inject()` and continue.
 - Use `page.goto(url, timeout=60000)` and a short `page.wait_for_timeout(2000)` after
   it, since some pages keep the network busy.
-- **Talk to the CapMonster REST API directly** with the target env's HTTP client —
-  don't reach for a vendor SDK, which can lag the API.
 - **A generated script cannot call `mcp__capmonster__*` or the patchright MCP tools** —
   those exist only in this session. The script uses its own `patchright`/`playwright` +
-  HTTP client. Note the `world:"main"` MCP option has no direct script equivalent: in a
+  the CapMonster client. Note the `world:"main"` MCP option has no direct script equivalent: in a
   script, **vanilla `playwright`'s `page.evaluate` already runs in the main world**, so a
   page-registered callback is callable directly; if the script uses the `patchright`
   engine, pass its main-world flag (`page.evaluate(fn, arg, isolatedContext=false)`) for
   the callback injection, mirroring what `world:"main"` did in-session.
-- Ask the user how they want to supply the API key (env var vs. a placeholder) — don't
-  embed a real key.
 
 ### Run scripts in the FOREGROUND with visible progress — never a silent long run
 
@@ -644,3 +723,12 @@ OK** — the user can't distinguish progress from a freeze, and can't tell how m
   cert, latency) — a MITM/dead/slow proxy wastes solves and time.
 - Don't run a long test silently in the background — foreground it, stream progress,
   bound it with a timeout, and tell the user the expected duration first.
+- Don't hardcode the API key in generated code, and never put it in frontend or browser
+  code; use `CAPMONSTER_API_KEY`.
+- Don't add `patchright` to a backend integration that already has its parameters; use only
+  the CapMonster client.
+- Don't replace `create_task` / `get_task_result_wait` with curl or requests in the session, and
+  don't write REST calls in project code when an SDK for the language exists and fits the project's stack.
+- Don't copy timings, limits or parameter lists into code or notes from memory. In project
+  code they come from the SDK (request classes, polling schedule); while working in this
+  session, from the tool descriptions, the docs page and `get_task_parameters`.

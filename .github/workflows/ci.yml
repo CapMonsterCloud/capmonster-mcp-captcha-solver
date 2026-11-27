@@ -41,6 +41,15 @@ jobs:
         working-directory: ts
         run: npm test
 
+      - name: Verify packaged skill copies match the single source
+        run: |
+          pip install build
+          python -m build --outdir /tmp/py-dist
+          mkdir -p /tmp/npm-dist
+          (cd ts && npm pack --pack-destination /tmp/npm-dist)
+          python scripts/verify_skill_sync.py \
+            --wheel /tmp/py-dist/*.whl --npm /tmp/npm-dist/*.tgz
+
   publish-test:
     needs: test
     if: startsWith(github.ref, 'refs/tags/v')

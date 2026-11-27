@@ -33,6 +33,12 @@ source = "vcs"
 [tool.hatch.build.targets.wheel]
 packages = ["capmonster_mcp"]
 
+# Single source: capmonster_agent/. Same files go into the npm package (ts/scripts/copy-agent-docs.mjs).
+[tool.hatch.build.targets.wheel.force-include]
+"capmonster_agent/SKILL.md" = "capmonster_mcp/agent/SKILL.md"
+"capmonster_agent/INSTRUCTIONS.md" = "capmonster_mcp/agent/INSTRUCTIONS.md"
+"capmonster_agent/prompts.json" = "capmonster_mcp/agent/prompts.json"
+
 [tool.ruff.lint]
 select = ["E", "F", "I"]
 

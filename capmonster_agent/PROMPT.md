@@ -4,10 +4,8 @@ I want to detect and solve a captcha using CapMonster Cloud. Set yourself up:
 
    a) capmonster — the solve brain (CapMonster Cloud). Runs the published
       `capmonster-mcp` PyPI package (no cloning needed):
-      { "command": "uvx", "args": ["capmonster-mcp"], "env": { "CM_API_KEY": "..." } }
-      It exposes: get_supported_tasks, get_task_parameters, get_docs,
-      create_task, get_task_result, get_task_result_wait, get_actual_user_agent,
-      get_balance.
+      { "command": "uvx", "args": ["capmonster-mcp"], "env": { "CAPMONSTER_API_KEY": "..." } }
+      Its tools and their descriptions appear in your client once connected.
       (get_task_result_wait polls a task to completion for you — prefer it over
       looping get_task_result by hand.)
 
@@ -25,11 +23,18 @@ I want to detect and solve a captcha using CapMonster Cloud. Set yourself up:
       by default; pass world:"main" to reach the page's own window globals —
       needed to fire a page-registered callback when injecting a solution.)
 
-2. WORKFLOW SKILL — fetch and follow this as your working instructions for
+2. WORKFLOW SKILL — follow this as your working instructions for
    analyzing and solving captchas with the two servers together, whether or not
    your environment has a first-class "skill" feature. It is a strict, ordered
-   procedure — follow the numbered steps in order:
+   procedure — follow the numbered steps for your path, in order. Read it from the capmonster
+   server once it is connected (MCP resource skill://capmonster-mcp/SKILL.md,
+   or the get_skill tool if you cannot read resources); only if that server is not
+   connected yet or cannot be reached, fetch the same file from:
    https://raw.githubusercontent.com/CapMonsterCloud/capmonster-mcp-captcha-solver/main/capmonster_agent/SKILL.md
+   If I ask you to integrate CapMonster into my project (not just solve one
+   page), finish with the skill's "Move the solve into the user's code" step. If I
+   already give you the task type and parameters and no page analysis is needed,
+   use the skill's no-browser path: the capmonster server alone, no patchright.
 
 3. DOCS — the capmonster MCP's `get_docs(url)` tool fetches any CapMonster doc
    page (docs.capmonster.cloud / api.capmonster.cloud only). Start from the
@@ -37,23 +42,21 @@ I want to detect and solve a captcha using CapMonster Cloud. Set yourself up:
    type's detailed page); read the specific type's single page for exact
    parameters, how to extract them from a live page (DevTools + Playwright/JS
    snippet), and worked createTask/getTaskResult examples (get_docs paginates
-   large pages and supports section="..." to jump straight to a section). Do NOT
+   large pages and supports section="..." to jump straight to a section). The page is the authority for field names; cross-check them
+   with get_task_parameters before creating a task. Do NOT
    pull the full single-file dump (https://docs.capmonster.cloud/llms-full.txt,
-   the entire site at once) — read the one per-vendor page instead. Note the
-   llms.txt index tagline lists "hCaptcha", but hCaptcha is NOT actually a
-   supported task type (absent from get_supported_tasks) — trust
-   get_supported_tasks. If you have NO MCP access, fetch the per-type URLs
-   directly instead.
+   the entire site at once) — read the one per-vendor page instead.
+   If you have NO MCP access, fetch the per-type URLs directly instead.
 
 4. FULL API SPEC — machine-readable contract, use it if you don't have MCP
-   access and need to call the REST API directly, or to double check a
-   parameter the reference above doesn't cover:
+   access and need to call the REST API directly, or as the last fallback for a
+   field the type's docs page and get_task_parameters leave unclear:
    https://api.capmonster.cloud/docs/swagger-ui/spec.js
 
 5. VALIDATE THE SETUP before starting: confirm each capmonster tool responds
    (call get_supported_tasks and get_balance) and that get_docs can fetch
    https://docs.capmonster.cloud/llms.txt, and confirm the patchright browser
-   opens (browser_navigate to any page). If any of these fails, stop and tell
+   opens (browser_navigate to any page) (not needed on the no-browser path). If any of these fails, stop and tell
    me what's wrong instead of proceeding.
 
 Once set up, ask me for:
