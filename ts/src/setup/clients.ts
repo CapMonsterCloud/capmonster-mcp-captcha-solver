@@ -1,5 +1,5 @@
 import { posix, win32 } from "node:path";
-import { isPlausibleKey, KEY_ENV, keyEnv, LEGACY_KEY_ENV } from "./servers.js";
+import { isPlausibleKey, KEY_ENV, LEGACY_KEY_ENV } from "./servers.js";
 import type { ClientId, Deps, LaunchSpec, Scope } from "./types.js";
 
 /** What setup found in the client's configuration for one server name. */
@@ -11,8 +11,6 @@ export interface Existing {
   args?: unknown;
   /** raw value of CAPMONSTER_API_KEY in the entry: a key or a reference like ${CAPMONSTER_API_KEY} */
   keyRaw?: string;
-  /** value of the deprecated CM_API_KEY in the entry, when there is one */
-  compatKey?: string;
   /** a usable literal key found in the entry (CAPMONSTER_API_KEY or the legacy CM_API_KEY) */
   key?: string;
   /** entry still uses the deprecated CM_API_KEY name */
@@ -131,7 +129,7 @@ const claudeCodeNative = nativeCli({
     "--scope",
     scope,
     item.name,
-    ...(item.keyValue === undefined ? [] : Object.entries(keyEnv(item.keyValue)).flatMap(([k, v]) => ["--env", `${k}=${v}`])),
+    ...(item.keyValue === undefined ? [] : ["--env", `${KEY_ENV}=${item.keyValue}`]),
     "--",
     item.launch.command,
     ...item.launch.args,
@@ -151,7 +149,7 @@ const codex = nativeCli({
     "mcp",
     "add",
     item.name,
-    ...(item.keyValue === undefined ? [] : Object.entries(keyEnv(item.keyValue)).flatMap(([k, v]) => ["--env", `${k}=${v}`])),
+    ...(item.keyValue === undefined ? [] : ["--env", `${KEY_ENV}=${item.keyValue}`]),
     "--",
     item.launch.command,
     ...item.launch.args,
@@ -233,7 +231,6 @@ function jsonClient(def: JsonClientDef): ClientAdapter {
         args: entry.args,
         keyRaw: primary,
         key: literal,
-        compatKey: legacy,
         legacyKey: legacy !== undefined && primary === undefined,
       };
     },
@@ -247,7 +244,7 @@ function jsonClient(def: JsonClientDef): ClientAdapter {
           : {};
       let literalKey = false;
       for (const item of items) {
-        const env = item.keyValue === undefined ? undefined : keyEnv(item.keyValue);
+        const env = item.keyValue === undefined ? undefined : { [KEY_ENV]: item.keyValue };
         if (item.keyValue !== undefined && scope === "user") literalKey = true;
         servers[item.name] = def.entry(item.launch, env);
       }

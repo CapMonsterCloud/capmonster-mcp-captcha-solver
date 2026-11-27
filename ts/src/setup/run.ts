@@ -5,7 +5,6 @@ import {
   capmonsterLaunch,
   isPlausibleKey,
   KEY_ENV,
-  LEGACY_KEY_COMPAT,
   LEGACY_KEY_ENV,
   maskKey,
   PATCHRIGHT_NAME,
@@ -23,8 +22,13 @@ import type {
   StepResult,
 } from "./types.js";
 
-// The published capmonster-mcp (0.1.14 and older) has no check_setup prompt, so the hint names tools only.
-const CHECK_HINT = "Check the connection: ask the agent to call get_balance and get_supported_tasks.";
+const CHECK_HINT: Record<ClientId, string> = {
+  "claude-code": "Check the setup: run the prompt /mcp__capmonster__check_setup (or ask the agent to call get_balance).",
+  codex: "Ask the agent to run a CapMonster check: get_supported_tasks and get_balance, then open example.com with patchright.",
+  cursor: "Ask the agent to run the capmonster check_setup prompt, or to call get_supported_tasks and get_balance.",
+  vscode: "Ask the agent to run the capmonster check_setup prompt, or to call get_supported_tasks and get_balance.",
+  "claude-desktop": "Ask the agent to run the capmonster check_setup prompt, or to call get_supported_tasks and get_balance.",
+};
 
 interface Wanted {
   name: string;
@@ -50,7 +54,7 @@ export async function runSetup(options: SetupOptions, d: Deps): Promise<SetupRep
     if (exitCode === 0 || changed) {
       const adapter = agent ? adapterFor(agent) : undefined;
       if (adapter && changed) next.push(adapter.restartHint);
-      if (agent && exitCode === 0) next.push(CHECK_HINT);
+      if (agent && exitCode === 0) next.push(CHECK_HINT[agent]);
     }
     return {
       ok: exitCode === 0,
@@ -181,13 +185,6 @@ export async function runSetup(options: SetupOptions, d: Deps): Promise<SetupRep
     } catch (error) {
       add({ step: "write", status: "error", message: (error as Error).message }, "fail");
       return finish(adapter.id, scope);
-    }
-    if (LEGACY_KEY_COMPAT && items.some((item) => item.keyValue !== undefined)) {
-      add({
-        step: "compat",
-        status: "ok",
-        message: `The key is also written as ${LEGACY_KEY_ENV}: the published capmonster-mcp (0.1.14 and older) reads only that name.`,
-      });
     }
   } else if (items.length > 0) {
     add({ step: "write", status: "skipped", message: `Dry run: would register ${items.map((item) => item.name).join(", ")}.` });
@@ -337,7 +334,6 @@ async function decide(
     !current.opaque &&
     sameLaunch(current, w.launch) &&
     (wantKey === undefined || current.keyRaw === wantKey) &&
-    (wantKey === undefined || !LEGACY_KEY_COMPAT || current.compatKey === wantKey) &&
     !current.legacyKey;
   if (identical) return { status: "skipped", message: "already configured, nothing to change.", write: false };
   if (current.opaque && !current.legacyKey && options.force) {

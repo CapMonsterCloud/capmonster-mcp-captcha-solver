@@ -43,6 +43,9 @@ to run itself (`--runtime python` registers `uvx capmonster-mcp` instead of `npx
 | VS Code | `vscode` | `project` | `.vscode/mcp.json`, the key is asked for at start |
 | Claude Desktop | `claude-desktop` | `user` | `claude_desktop_config.json` (macOS, Windows) |
 
+- **VS Code and Claude Desktop.** For VS Code, setup writes only the project file `.vscode/mcp.json`;
+  the per-user `mcp.json` (command "MCP: Open User Configuration") is not written, so `--scope user`
+  is refused. Claude Desktop has no official Linux build; there setup stops with "not available on this system" (exit code 1).
 - **The key.** Taken from `CAPMONSTER_API_KEY`, else from the existing entry, else asked for with
   hidden input. In the `user` scope it is stored in the client's own config; in the `project`
   scope (files you commit) only a reference such as `${CAPMONSTER_API_KEY}` is written. The key is
@@ -60,7 +63,7 @@ to run itself (`--runtime python` registers `uvx capmonster-mcp` instead of `npx
   rights) or when there is no display (use `--headless`).
 - **Dry run.** `--dry-run` shows what would change and writes nothing.
 
-After setup, restart the client and ask the agent to call `get_balance` and `get_supported_tasks`.
+After setup, restart the client and run the `check_setup` prompt, or ask the agent to call `get_balance` and `get_supported_tasks`.
 
 ## Configuration
 

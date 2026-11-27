@@ -8,7 +8,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { parseArgs, SETUP_USAGE } from "./args.js";
 import { interpretBalance } from "./checks.js";
-import { keyEnv } from "./servers.js";
+import { KEY_ENV } from "./servers.js";
 import { runSetup } from "./run.js";
 import type { Deps, LaunchSpec, ProbeResult, Prompter, RunResult, SetupReport, VerifyResult } from "./types.js";
 
@@ -102,7 +102,7 @@ const timeoutText = () =>
 /** Starts the capmonster server from its configured command and calls get_balance. The key never appears in the result. */
 async function verify(launch: LaunchSpec, key: string): Promise<VerifyResult> {
   try {
-    const result = (await withServer(launch, keyEnv(key), (client) =>
+    const result = (await withServer(launch, { [KEY_ENV]: key }, (client) =>
       client.callTool({ name: "get_balance", arguments: {} }),
     )) as { content?: { type: string; text?: string }[]; isError?: boolean };
     const text = (result.content ?? []).map((part) => part.text ?? "").join(" ");

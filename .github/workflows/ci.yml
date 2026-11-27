@@ -152,6 +152,22 @@ jobs:
         with:
           node-version: "20"
 
+      - name: Wait for npm to serve the rc tag
+        # npm processes a new package for a minute or two after `npm publish`; until then
+        # the rc tag still points to the previous version and the check below would fail.
+        run: |
+          version="${{ needs.publish-test.outputs.version }}"
+          for i in $(seq 1 40); do
+            if [ "$(npm view capmonster-mcp@rc version 2>/dev/null)" = "$version" ]; then
+              echo "npm serves capmonster-mcp@rc = ${version}"
+              exit 0
+            fi
+            echo "Attempt ${i}: rc tag is not ${version} yet, waiting 15s"
+            sleep 15
+          done
+          echo "::error::capmonster-mcp@rc did not become ${version} within 10 minutes"
+          exit 1
+
       - name: Install from npm rc tag and check version
         run: |
           version="${{ needs.publish-test.outputs.version }}"

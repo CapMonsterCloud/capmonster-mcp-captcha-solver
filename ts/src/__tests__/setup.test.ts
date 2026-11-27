@@ -138,7 +138,7 @@ test("cursor user scope: creates the file with a literal key readable by the own
   assert.deepEqual(written.mcpServers.capmonster, {
     command: "npx",
     args: ["-y", "capmonster-mcp"],
-    env: { CAPMONSTER_API_KEY: KEY, CM_API_KEY: KEY },
+    env: { CAPMONSTER_API_KEY: KEY },
   });
   assert.deepEqual(written.mcpServers.patchright, { command: "npx", args: ["-y", "capmonster-mcp-patchright"] });
   assert.equal(f.writes[0].secret, true);
@@ -252,7 +252,7 @@ test("an entry with the legacy CM_API_KEY is reported, and replaced with --force
   const report = await runSetup(options({ force: true }), forced.deps);
   assert.equal(report.exitCode, 0);
   const env = JSON.parse(forced.files.get("/home/u/.cursor/mcp.json") as string).mcpServers.capmonster.env;
-  assert.deepEqual(env, { CAPMONSTER_API_KEY: KEY, CM_API_KEY: KEY });
+  assert.deepEqual(env, { CAPMONSTER_API_KEY: KEY });
 });
 
 test("the key of an existing entry is reused when the environment has none", async () => {
@@ -263,7 +263,7 @@ test("the key of an existing entry is reused when the environment has none", asy
   const report = await runSetup(options({ force: true }), f.deps);
   assert.equal(report.exitCode, 0);
   const env = JSON.parse(f.files.get("/home/u/.cursor/mcp.json") as string).mcpServers.capmonster.env;
-  assert.deepEqual(env, { CAPMONSTER_API_KEY: "cm-old-0123456789", CM_API_KEY: "cm-old-0123456789" });
+  assert.deepEqual(env, { CAPMONSTER_API_KEY: "cm-old-0123456789" });
 });
 
 test("interactive: a differing entry is replaced only after confirmation", async () => {
@@ -285,7 +285,7 @@ test("claude-code user scope: the native command, --env before the --", async ()
   const adds = f.runs.filter(([, args]) => args[1] === "add");
   assert.deepEqual(adds[0], [
     "claude",
-    ["mcp", "add", "--scope", "user", "capmonster", "--env", `CAPMONSTER_API_KEY=${KEY}`, "--env", `CM_API_KEY=${KEY}`, "--", "npx", "-y", "capmonster-mcp"],
+    ["mcp", "add", "--scope", "user", "capmonster", "--env", `CAPMONSTER_API_KEY=${KEY}`, "--", "npx", "-y", "capmonster-mcp"],
   ]);
   assert.deepEqual(adds[1], [
     "claude",
@@ -329,7 +329,7 @@ test("codex: native command with --env before the --", async () => {
   assert.equal(report.exitCode, 0);
   assert.deepEqual(f.runs.find(([, a]) => a[1] === "add"), [
     "codex",
-    ["mcp", "add", "capmonster", "--env", `CAPMONSTER_API_KEY=${KEY}`, "--env", `CM_API_KEY=${KEY}`, "--", "npx", "-y", "capmonster-mcp"],
+    ["mcp", "add", "capmonster", "--env", `CAPMONSTER_API_KEY=${KEY}`, "--", "npx", "-y", "capmonster-mcp"],
   ]);
 });
 
@@ -352,7 +352,7 @@ test("python runtime registers uvx and needs it", async () => {
   assert.deepEqual(written.mcpServers.capmonster, {
     command: "uvx",
     args: ["capmonster-mcp"],
-    env: { CAPMONSTER_API_KEY: KEY, CM_API_KEY: KEY },
+    env: { CAPMONSTER_API_KEY: KEY },
   });
   const missing = await runSetup(options({ runtime: "python" }), fake({ have: ["npx"] }).deps);
   assert.equal(missing.exitCode, 1);
@@ -392,7 +392,6 @@ test("the deprecated CM_API_KEY in the environment still works, with a warning",
   assert.equal(step(report, "key")?.status, "warn");
   assert.deepEqual(JSON.parse(f.files.get("/home/u/.cursor/mcp.json") as string).mcpServers.capmonster.env, {
     CAPMONSTER_API_KEY: KEY,
-    CM_API_KEY: KEY,
   });
 });
 
@@ -471,38 +470,12 @@ test("patchright start failure is a warning, skip-browser skips the probe", asyn
   assert.deepEqual(skipped.probed, []);
 });
 
-test("the key is written under both names while published capmonster-mcp reads only CM_API_KEY", async () => {
-  const f = fake();
-  const report = await runSetup(options(), f.deps);
-  assert.match(step(report, "compat")?.message ?? "", /CM_API_KEY/);
-  const project = fake();
-  await runSetup(options({ scope: "project" }), project.deps);
-  const content = project.files.get("/work/.cursor/mcp.json") as string;
-  assert.ok(!content.includes(KEY));
-  const env = JSON.parse(content).mcpServers.capmonster.env;
-  assert.equal(env.CAPMONSTER_API_KEY, env.CM_API_KEY, "both names carry the same reference");
-});
-
-test("an entry with only CAPMONSTER_API_KEY is not 'already configured' while the compat name is needed", async () => {
-  const old = JSON.stringify({
-    mcpServers: {
-      capmonster: { command: "npx", args: ["-y", "capmonster-mcp"], env: { CAPMONSTER_API_KEY: KEY } },
-      patchright: { command: "npx", args: ["-y", "capmonster-mcp-patchright"] },
-    },
-  });
-  const f = fake({ files: { "/home/u/.cursor/mcp.json": old } });
-  const report = await runSetup(options(), f.deps);
-  assert.notEqual(step(report, "capmonster")?.status, "skipped");
-  const forced = fake({ files: { "/home/u/.cursor/mcp.json": old } });
-  await runSetup(options({ force: true }), forced.deps);
-  const env = JSON.parse(forced.files.get("/home/u/.cursor/mcp.json") as string).mcpServers.capmonster.env;
-  assert.deepEqual(env, { CAPMONSTER_API_KEY: KEY, CM_API_KEY: KEY });
-});
-
-test("the final hint names tools, not the check_setup prompt (absent from the published package)", async () => {
-  const report = await runSetup(options(), fake().deps);
-  assert.ok(report.next.some((line) => /get_balance/.test(line)));
-  assert.ok(!report.next.some((line) => /check_setup/.test(line)));
+test("the final hint names the check_setup prompt for Claude Code and tools for Codex", async () => {
+  const code = await runSetup(options({ agent: "claude-code" }), fake().deps);
+  assert.ok(code.next.some((line) => /check_setup/.test(line)));
+  const codex = await runSetup(options({ agent: "codex" }), fake().deps);
+  assert.ok(codex.next.some((line) => /get_balance/.test(line)));
+  assert.ok(!codex.next.some((line) => /check_setup/.test(line)));
 });
 
 test("interpretBalance reads the tool answer", () => {

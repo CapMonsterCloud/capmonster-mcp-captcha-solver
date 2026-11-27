@@ -144,7 +144,7 @@ to run itself (`--runtime python` registers `uvx capmonster-mcp` instead of `npx
   rights) or when there is no display (use `--headless`).
 - **Dry run.** `--dry-run` shows what would change and writes nothing.
 
-After setup, restart the client and ask the agent to call `get_balance` and `get_supported_tasks`.
+After setup, restart the client and run the `check_setup` prompt, or ask the agent to call `get_balance` and `get_supported_tasks`.
 
 ## 🔌 Using with an MCP client (e.g. Claude Desktop)
 
