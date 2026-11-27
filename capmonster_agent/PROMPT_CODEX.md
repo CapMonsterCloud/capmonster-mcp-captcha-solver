@@ -15,6 +15,10 @@ If running in WSL, Docker, SSH, or another remote environment, perform these che
 
 Reuse existing working servers. Do not create duplicate entries, replace working settings, or overwrite an existing API key.
 
+Fastest: if you can run shell commands, run
+npx -y capmonster-mcp setup --agent codex --non-interactive --json
+It registers both servers with `codex mcp add`, checks the key with get_balance and looks for Chrome. It reads the key only from the CAPMONSTER_API_KEY environment variable of the process that runs it; if that is not set, do not ask me to paste the key into this chat: ask me to set it, or to run `npx -y capmonster-mcp setup --agent codex` in my own terminal (hidden input). Exit code 0 = done, 1 = a step failed (read the report), 2 = input missing. If you cannot run it, configure by hand:
+
 Ensure these two STDIO servers are configured in TOML:
 
 [mcp_servers.capmonster]

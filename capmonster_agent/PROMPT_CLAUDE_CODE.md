@@ -18,6 +18,15 @@ config for new servers (`claude mcp add --scope user`).
 
 2. CONFIGURE BOTH STDIO SERVERS
 
+Fastest: if you can run shell commands, run
+npx -y capmonster-mcp setup --agent claude-code --non-interactive --json
+It registers both servers in user scope, checks the key with get_balance and
+looks for Chrome. It reads the key only from the CAPMONSTER_API_KEY environment
+variable; if that is not set, don't ask me to paste the key into this chat: ask me
+to set it, or to run `npx -y capmonster-mcp setup` in my own terminal (hidden
+input). Exit code 0 = done, 1 = a step failed (read the report), 2 = input
+missing. If you cannot run it, configure by hand.
+
 Use the published npm packages via npx, don't clone repos:
 
 claude mcp add --scope user --transport stdio capmonster -- npx -y capmonster-mcp

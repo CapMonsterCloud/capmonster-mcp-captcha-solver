@@ -1,6 +1,18 @@
 I want to detect and solve a captcha using CapMonster Cloud. Set yourself up:
 
-1. MCP SERVERS — if you support MCP servers, add BOTH of these to your config:
+1. MCP SERVERS — if you support MCP servers, set up BOTH servers below.
+
+   FASTEST PATH — if you can run shell commands and Node.js 18+ is installed, run
+   the setup command instead of editing config files by hand:
+      npx -y capmonster-mcp setup --agent <id> --non-interactive --json
+   where <id> is the client you run in: claude-code, codex, cursor, vscode or
+   claude-desktop. It registers both servers, checks the key with get_balance and
+   looks for Chrome. It reads the key only from the CAPMONSTER_API_KEY environment
+   variable. If that variable is not set, do NOT ask me to paste the key into this
+   chat: ask me to set it, or to run `npx -y capmonster-mcp setup` in my own terminal
+   (it asks for the key with hidden input), then continue. Exit code 0 = done,
+   1 = a step failed (read the report), 2 = input missing. If your client is not in
+   the list or you cannot run commands, add the servers by hand:
 
    a) capmonster — the solve brain (CapMonster Cloud). Runs the published
       `capmonster-mcp` npm package via npx (needs Node.js 18+, no cloning needed):

@@ -2,18 +2,6 @@ import type { LaunchSpec, Runtime } from "./types.js";
 
 export const KEY_ENV = "CAPMONSTER_API_KEY";
 export const LEGACY_KEY_ENV = "CM_API_KEY";
-/**
- * capmonster-mcp up to 0.1.14 (the latest published) reads only CM_API_KEY; the current source reads
- * CAPMONSTER_API_KEY first and CM_API_KEY as a deprecated fallback. Until a release with the new name
- * is out, the key is written under both names. Remove LEGACY_KEY_COMPAT (and its tests) after that.
- */
-export const LEGACY_KEY_COMPAT = true;
-
-/** Environment variables that carry the key into the capmonster server entry. */
-export function keyEnv(value: string): Record<string, string> {
-  return LEGACY_KEY_COMPAT ? { [KEY_ENV]: value, [LEGACY_KEY_ENV]: value } : { [KEY_ENV]: value };
-}
-
 export const CAPMONSTER_NAME = "capmonster";
 export const PATCHRIGHT_NAME = "patchright";
 
