@@ -50,7 +50,7 @@
           "default": "pick a fitting place in the project and tell me where"
         }
       ],
-      "template": "Move the CapMonster solve into my project's code. Read the CapMonster skill first (MCP resource skill://capmonster-mcp/SKILL.md, or call get_skill) and finish with Step 9: the official CapMonster SDK for the project's language, the API key from CAPMONSTER_API_KEY, and the userAgent from the solution applied to follow-up requests.\n\nLanguage: {language}\nWhere the code should go: {module_path}\n\nIf this conversation has no successful test solve of this captcha yet, get one first by the path the skill's \"Pick your path\" names for what you already know: the no-browser path when the task type and parameters are known, the browser path when the page has to be analyzed. Then write the code so it mirrors that verified flow."
+      "template": "Move the CapMonster solve into my project's code. Read the CapMonster skill first (MCP resource skill://capmonster-mcp/SKILL.md, or call get_skill) and finish with Step 9: the official CapMonster SDK for the project's language, the API key from CAPMONSTER_API_KEY, and one User-Agent for the whole flow (the current one from get_actual_user_agent, set on the HTTP session before the first request and passed in the task; if the solution returns a userAgent, use that).\n\nLanguage: {language}\nWhere the code should go: {module_path}\n\nIf this conversation has no successful test solve of this captcha yet, get one first by the path the skill's \"Pick your path\" names for what you already know: the no-browser path when the task type and parameters are known, the browser path when the page has to be analyzed. Then write the code so it mirrors that verified flow."
     }
   ]
 }

@@ -569,8 +569,8 @@ there only when no SDK fits (Step 9).
   `cookie`, `ticket`+`randstr`, …) and the nesting vary by type. Extract defensively. If
   the solution carries its own `userAgent` / `headers["User-Agent"]` (Cloudflare
   Challenge, FunCaptcha, AWS WAF, Binance, TenDI, Basilisk), the token is bound to **that**
-  UA — carry it into Step 8's injection and any follow-up requests (keep the whole solve on
-  one UA; see `get_actual_user_agent`).
+  UA, normally the one you passed in the task — carry it into Step 8's injection and any
+  follow-up requests (one UA for the whole flow, see "One User-Agent" in Step 9).
 
 **Finish line check:** if the goal was only "does CapMonster return a token?", stop
 here — report the solution.
@@ -644,10 +644,20 @@ create the task, collect the result, apply the solution, continue. Only the tool
   — and fall back to the limits in the `get_task_result_wait` / `get_task_result` tool
   descriptions if neither gives the type. Put polling in one wrapper function with a hard
   overall deadline, and never poll in an unbounded loop.
-- **`userAgent` from the solution:** if the solution carries a `userAgent` (or
-  `headers["User-Agent"]`), send every follow-up request that uses the token with exactly
-  that value, and keep the whole session on it. A token paired with a different UA is
-  often rejected even though CapMonster solved it.
+- **One User-Agent for the whole flow.** A captcha binds to a User-Agent in one of two places.
+  Some need the right UA already when the challenge is *initiated* (page load, widget init), so
+  you pass your UA to CapMonster in the task. Others do not care at initiation but check it when
+  you *submit*, and then the solution returns the UA to submit with. In practice both are the same
+  value: get the current one with `get_actual_user_agent` (in code: GET
+  `https://capmonster.cloud/api/useragent/actual`), set it once on the HTTP session or browser
+  before the first request (HTTP libraries send their own UA, e.g. `python-requests/…`, unless you
+  set one, for example `session.headers["User-Agent"] = ua`), so the page load and the submit carry
+  it, and also pass it as `userAgent` in the task when the type's docs page lists that field. If the solution
+  carries a `userAgent` (or `headers["User-Agent"]`), send every follow-up request that uses the
+  token with exactly that value (normally what you passed). If the user supplies their own UA
+  (their browser or session), use theirs throughout instead. A token paired with a different UA
+  is often rejected even though CapMonster solved it. Never invent a UA: take it from the
+  endpoint, the tool, the user or the solution.
 - **Per-run values:** the code must obtain one-time parameters (tokens, nonces, challenge
   values) from the page on every run. Never copy values from the interactive session into
   the code.
